@@ -1,0 +1,9 @@
+{
+  "name": "@crash-game/typescript-config",
+  "version": "0.0.1",
+  "private": true,
+  "files": ["tsconfig.json"],
+  "exports": {
+    "./tsconfig.json": "./tsconfig.json"
+  }
+}
