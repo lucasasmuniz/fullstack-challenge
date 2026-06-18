@@ -12,29 +12,43 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_EXTRA_DATABASES: games,wallets
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   # ---------------------------------------------------------------------------
-  # RabbitMQ (with management UI)
+  # LocalStack (AWS SQS — substitui o RabbitMQ)
   # ---------------------------------------------------------------------------
-  rabbitmq:
-    image: rabbitmq:4.2.4-management-alpine
+  localstack:
+    image: localstack/localstack:3
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "4566:4566"
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
+      SERVICES: sqs
+      DEBUG: "0"
+      AWS_DEFAULT_REGION: us-east-1
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - ./docker/localstack/init/ready.d:/etc/localstack/init/ready.d:ro
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # Valkey (cache + pub/sub do WebSocket + estado do round)
+  # ---------------------------------------------------------------------------
+  valkey:
+    image: valkey/valkey:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -87,24 +101,32 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
 
   # ---------------------------------------------------------------------------
   # Games Service
   # ---------------------------------------------------------------------------
   games:
     build:
-      context: ./services/games
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/games/Dockerfile
     ports:
       - "4001:4001"
-    env_file:
-      - ./services/games/.env
+    environment:
+      PORT: 4001
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/games
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      SQS_INBOX_QUEUE_URL: http://localstack:4566/000000000000/game-inbox
+      SQS_OUTBOUND_QUEUE_URL: http://localstack:4566/000000000000/wallet-inbox
+      VALKEY_URL: redis://valkey:6379
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq:
+      localstack:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:4001/health || exit 1"]
@@ -118,16 +140,26 @@ services:
   # ---------------------------------------------------------------------------
   wallets:
     build:
-      context: ./services/wallets
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/wallets/Dockerfile
     ports:
       - "4002:4002"
-    env_file:
-      - ./services/wallets/.env
+    environment:
+      PORT: 4002
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/wallets
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      SQS_INBOX_QUEUE_URL: http://localstack:4566/000000000000/wallet-inbox
+      SQS_OUTBOUND_QUEUE_URL: http://localstack:4566/000000000000/game-inbox
+      VALKEY_URL: redis://valkey:6379
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq:
+      localstack:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:4002/health || exit 1"]
@@ -150,4 +182,3 @@ services:
 
 volumes:
   postgres_data:
-  rabbitmq_data:
