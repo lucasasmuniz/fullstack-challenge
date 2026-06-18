@@ -1,0 +1,15 @@
+# Build context é a raiz do monorepo — enxugar o que não vai pras imagens dos serviços.
+**/node_modules
+**/dist
+**/coverage
+**/*.log
+
+.git
+.gitignore
+docs
+frontend
+
+# Env locais (os serviços recebem env via docker-compose `environment:`)
+**/.env
+**/.env.*
+!**/.env.example
