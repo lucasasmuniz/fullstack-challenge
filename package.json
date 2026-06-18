@@ -3,15 +3,21 @@
   "private": true,
   "workspaces": [
     "services/*",
-    "packages/*",
-    "frontend"
+    "packages/*"
   ],
   "scripts": {
     "docker:up": "docker compose up",
     "docker:down": "docker compose down",
-    "docker:prune": "docker compose down -v --rmi all --remove-orphans && docker volume prune -f"
+    "docker:prune": "docker compose down -v --rmi all --remove-orphans && docker volume prune -f",
+    "lint": "eslint .",
+    "typecheck": "bun run --filter '@crash-game/*' typecheck",
+    "test": "bun test"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "@crash-game/eslint-config": "workspace:*",
+    "@crash-game/typescript-config": "workspace:*",
+    "bun-types": "latest",
+    "eslint": "^9.13.0",
+    "typescript": "^5.8.3"
   }
 }

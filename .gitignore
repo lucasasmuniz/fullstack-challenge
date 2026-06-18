@@ -7,6 +7,7 @@ node_modules/
 
 # Build output
 dist/
+*.tsbuildinfo
 
 # Bun lockfile (keep bun.lockb)
 # bun.lockb
@@ -31,3 +32,6 @@ yarn-error.log*
 
 # Test coverage
 coverage/
+
+# Journal — material de estudo pessoal do Lucas, fora do histórico (ver docs/AI_WORKFLOW.md)
+docs/journal/

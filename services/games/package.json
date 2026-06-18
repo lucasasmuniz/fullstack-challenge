@@ -1,14 +1,21 @@
 {
-  "name": "@crash/games",
+  "name": "@crash-game/games",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/main.ts",
     "start": "bun run src/main.ts",
+    "typecheck": "tsc --noEmit",
     "test": "bun test tests/unit",
     "test:e2e": "bun test tests/e2e"
   },
   "dependencies": {
+    "@crash-game/domain-kit": "workspace:*",
+    "@crash-game/persistence": "workspace:*",
+    "@mikro-orm/core": "^6.4.0",
+    "@mikro-orm/migrations": "^6.4.0",
+    "@mikro-orm/postgresql": "^6.4.0",
+    "@mikro-orm/reflection": "^6.4.0",
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
