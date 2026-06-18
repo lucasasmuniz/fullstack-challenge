@@ -1,4 +1,6 @@
 export class HealthCheckResponseDto {
-  status: string;
-  service: string;
+  constructor(
+    public readonly status: string,
+    public readonly service: string,
+  ) {}
 }

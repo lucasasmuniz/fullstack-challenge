@@ -5,6 +5,6 @@ import { HealthCheckResponseDto } from "../dtos/health-check-response.dto";
 export class WalletsController {
   @Get("health")
   check(): HealthCheckResponseDto {
-    return { status: "ok", service: "wallets" };
+    return new HealthCheckResponseDto("ok", "wallets");
   }
 }
