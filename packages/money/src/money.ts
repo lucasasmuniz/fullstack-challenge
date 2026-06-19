@@ -27,13 +27,31 @@ export class Money {
     return new Money(this.cents + other.cents);
   }
 
-  /** Subtrai; lança se o resultado for negativo (cheque `isGreaterThanOrEqual` antes). */
   subtract(other: Money): Money {
     const result = this.cents - other.cents;
     if (result < 0n) {
       throw new RangeError("Money.subtract resultaria em valor negativo");
     }
     return new Money(result);
+  }
+
+  /**
+   * Aplica um multiplicador inteiro ×100 (ex.: `247` = `2.47x`) e arredonda para
+   * baixo (`floor`) — **a favor da casa** (ADR 0005). Toda a aritmética é em `bigint`
+   * (divisão inteira já trunca para baixo em valores não-negativos), sem float. É a
+   * fonte única do cálculo de payout do cashout: `payout = floor(cents · mult / 100)`.
+   */
+  multipliedBy(multiplierX100: bigint | number): Money {
+    const mult =
+      typeof multiplierX100 === "bigint"
+        ? multiplierX100
+        : toSafeBigInt(multiplierX100);
+    if (mult < 0n) {
+      throw new RangeError(
+        `Multiplicador não pode ser negativo: ${mult.toString()}`,
+      );
+    }
+    return new Money((this.cents * mult) / 100n);
   }
 
   isGreaterThanOrEqual(other: Money): boolean {
@@ -52,7 +70,6 @@ export class Money {
     return this.cents === other.cents;
   }
 
-  /** -1 | 0 | 1 (ordenação). */
   compare(other: Money): number {
     if (this.cents < other.cents) return -1;
     if (this.cents > other.cents) return 1;
