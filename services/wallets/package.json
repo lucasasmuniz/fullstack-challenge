@@ -6,11 +6,13 @@
     "dev": "bun run --watch src/main.ts",
     "start": "bun run src/main.ts",
     "typecheck": "tsc --noEmit",
+    "db:migrate": "bun run src/infrastructure/database/migrate.ts",
     "test": "bun test tests/unit",
     "test:e2e": "RUN_E2E=1 bun test tests/e2e"
   },
   "dependencies": {
     "@crash-game/domain-kit": "workspace:*",
+    "@crash-game/money": "workspace:*",
     "@crash-game/nestjs-kit": "workspace:*",
     "@crash-game/persistence": "workspace:*",
     "@mikro-orm/core": "^6.4.0",

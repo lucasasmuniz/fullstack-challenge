@@ -10,7 +10,18 @@ import { defineConfig, type Options } from "@mikro-orm/postgresql";
 export function baseMikroOrmConfig(overrides: Options): Options {
   return defineConfig({
     namingStrategy: UnderscoreNamingStrategy,
-    migrations: { path: "dist/migrations", pathTs: "src/migrations" },
+    // Bun roda .ts direto (sem build pra dist). Apontamos as migrations pro
+    // diretório TS em ambos os modos (path/pathTs) + glob .ts/.js, para o migrator
+    // achá-las independentemente da detecção de TS do MikroORM sob Bun. Sem snapshot
+    // (não há fluxo de diff schema em runtime).
+    migrations: {
+      path: "src/migrations",
+      pathTs: "src/migrations",
+      glob: "!(*.d).{ts,js}",
+      emit: "ts",
+      snapshot: false,
+      disableForeignKeys: false,
+    },
     forceUtcTimezone: true,
     debug: false,
     ...overrides,
