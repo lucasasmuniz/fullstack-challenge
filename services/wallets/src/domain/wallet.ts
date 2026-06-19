@@ -19,13 +19,17 @@ import type { WalletReason } from "./wallet-reason";
  * `playerId` (= `sub` do JWT), com 1 carteira por jogador.
  */
 export class Wallet extends AggregateRoot<string> {
-  private _playerId!: string;
-  private _currency!: string;
+  private _playerId: string;
+  private _currency: string;
   private _balance: Money = Money.zero();
   private _version = 0;
 
-  private constructor(id: string) {
+  // Construtor privado recebe a identidade (sem `!`): toda construção passa por
+  // `create`/`rebuild`, que sempre têm `playerId`/`currency` (params ou 1º evento).
+  private constructor(id: string, playerId: string, currency: string) {
     super(id);
+    this._playerId = playerId;
+    this._currency = currency;
   }
 
   get playerId(): string {
@@ -47,7 +51,7 @@ export class Wallet extends AggregateRoot<string> {
     playerId: string;
     currency: string;
   }): Result<Wallet, never> {
-    const wallet = new Wallet(props.walletId);
+    const wallet = new Wallet(props.walletId, props.playerId, props.currency);
     wallet.applyAndRecord(
       new WalletCreated(props.walletId, props.playerId, props.currency, 1),
     );
@@ -64,7 +68,7 @@ export class Wallet extends AggregateRoot<string> {
     if (!(first instanceof WalletCreated)) {
       throw new Error("Stream de wallet deve começar com WalletCreated");
     }
-    const wallet = new Wallet(first.walletId);
+    const wallet = new Wallet(first.walletId, first.playerId, first.currency);
     let expectedVersion = 1;
     for (const event of events) {
       if (event.version !== expectedVersion) {
@@ -125,8 +129,7 @@ export class Wallet extends AggregateRoot<string> {
   private apply(event: WalletDomainEvent): void {
     switch (event.eventName) {
       case "WalletCreated":
-        this._playerId = event.playerId;
-        this._currency = event.currency;
+        // Identidade (playerId/currency) já vem do construtor; aqui só o saldo inicial.
         this._balance = Money.zero();
         break;
       case "FundsCredited":
