@@ -11,7 +11,8 @@
     "docker:prune": "docker compose down -v --rmi all --remove-orphans && docker volume prune -f",
     "lint": "eslint .",
     "typecheck": "bun run --filter '@crash-game/*' typecheck",
-    "test": "bun test"
+    "test": "bun test packages services/*/tests/unit",
+    "test:e2e": "RUN_E2E=1 bun test services/*/tests/e2e"
   },
   "devDependencies": {
     "@crash-game/eslint-config": "workspace:*",
