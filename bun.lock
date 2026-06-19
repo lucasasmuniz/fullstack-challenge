@@ -40,6 +40,20 @@
       "name": "@crash-game/money",
       "version": "0.0.1",
     },
+    "packages/nestjs-kit": {
+      "name": "@crash-game/nestjs-kit",
+      "version": "0.0.1",
+      "dependencies": {
+        "jose": "^5.9.6",
+        "zod": "^3.24.1",
+      },
+      "peerDependencies": {
+        "@nestjs/common": "^11.0.0",
+        "@nestjs/core": "^11.0.0",
+        "reflect-metadata": "^0.2.0",
+        "rxjs": "^7.0.0",
+      },
+    },
     "packages/persistence": {
       "name": "@crash-game/persistence",
       "version": "0.0.1",
@@ -57,9 +71,11 @@
       "version": "0.0.1",
       "dependencies": {
         "@crash-game/domain-kit": "workspace:*",
+        "@crash-game/nestjs-kit": "workspace:*",
         "@crash-game/persistence": "workspace:*",
         "@mikro-orm/core": "^6.4.0",
         "@mikro-orm/migrations": "^6.4.0",
+        "@mikro-orm/nestjs": "^6.1.1",
         "@mikro-orm/postgresql": "^6.4.0",
         "@mikro-orm/reflection": "^6.4.0",
         "@nestjs/common": "^11.1.17",
@@ -67,6 +83,7 @@
         "@nestjs/platform-express": "^11.1.17",
         "reflect-metadata": "^0.2.2",
         "rxjs": "^7.8.2",
+        "zod": "^3.24.1",
       },
       "devDependencies": {
         "bun-types": "latest",
@@ -78,9 +95,11 @@
       "version": "0.0.1",
       "dependencies": {
         "@crash-game/domain-kit": "workspace:*",
+        "@crash-game/nestjs-kit": "workspace:*",
         "@crash-game/persistence": "workspace:*",
         "@mikro-orm/core": "^6.4.0",
         "@mikro-orm/migrations": "^6.4.0",
+        "@mikro-orm/nestjs": "^6.1.1",
         "@mikro-orm/postgresql": "^6.4.0",
         "@mikro-orm/reflection": "^6.4.0",
         "@nestjs/common": "^11.1.17",
@@ -88,6 +107,7 @@
         "@nestjs/platform-express": "^11.1.17",
         "reflect-metadata": "^0.2.2",
         "rxjs": "^7.8.2",
+        "zod": "^3.24.1",
       },
       "devDependencies": {
         "bun-types": "latest",
@@ -111,6 +131,8 @@
     "@crash-game/messaging": ["@crash-game/messaging@workspace:packages/messaging"],
 
     "@crash-game/money": ["@crash-game/money@workspace:packages/money"],
+
+    "@crash-game/nestjs-kit": ["@crash-game/nestjs-kit@workspace:packages/nestjs-kit"],
 
     "@crash-game/persistence": ["@crash-game/persistence@workspace:packages/persistence"],
 
@@ -153,6 +175,8 @@
     "@mikro-orm/knex": ["@mikro-orm/knex@6.6.15", "", { "dependencies": { "fs-extra": "11.3.3", "knex": "3.2.10", "sqlstring": "2.3.3" }, "peerDependencies": { "@mikro-orm/core": "^6.0.0", "better-sqlite3": "*", "libsql": "*", "mariadb": "*" }, "optionalPeers": ["better-sqlite3", "libsql", "mariadb"] }, "sha512-hNwwzUvY+miWQWMhB2KazmVB5+nc4rS1t4ArTO+S4PbPJphEd3GKlk4ScBJEefvoP/LB0X2NwdvIMr+P4YDDFw=="],
 
     "@mikro-orm/migrations": ["@mikro-orm/migrations@6.6.15", "", { "dependencies": { "@mikro-orm/knex": "6.6.15", "fs-extra": "11.3.3", "umzug": "3.8.2" }, "peerDependencies": { "@mikro-orm/core": "^6.0.0" } }, "sha512-yYcur++CBQdmDMZw2CTPKwaM3LHpwTnh3PXDjJ1iRjJ5qnf+DWMvtpLkXn8SaKSlDiNDIeBWbmrQ9ibV4B0/Kw=="],
+
+    "@mikro-orm/nestjs": ["@mikro-orm/nestjs@6.1.2", "", { "peerDependencies": { "@mikro-orm/core": "^6.0.0 || ^6.0.0-dev.0 || ^7.0.0-dev.0", "@nestjs/common": "^10.0.0 || ^11.0.5", "@nestjs/core": "^10.0.0 || ^11.0.5" } }, "sha512-rITNvXusRVAB7PjEftT5ooDg6U2FZHwpn0u9f5RJyc9gVJGL2XroSJ6iX7VbDXasY8GUT1agdeeKmImx+MThdw=="],
 
     "@mikro-orm/postgresql": ["@mikro-orm/postgresql@6.6.15", "", { "dependencies": { "@mikro-orm/knex": "6.6.15", "pg": "8.20.0", "postgres-array": "3.0.4", "postgres-date": "2.1.0", "postgres-interval": "4.0.2" }, "peerDependencies": { "@mikro-orm/core": "^6.0.0" } }, "sha512-oJlfyYGY6dRPd/Vp++6qssfP2DZvZ9SrRbmy3BDAtSz7OOlxDA88SwJfEIk1wckT/I9AieigZ8lJE0k+6nBM4Q=="],
 
@@ -432,6 +456,8 @@
 
     "jju": ["jju@1.4.0", "", {}, "sha512-8wb9Yw966OSxApiCt0K3yNJL8pnNeIv+OEq2YMidz4FKP6nonSRoOXc80iXY4JaN2FC11B9qsNmDsm+ZOfMROA=="],
 
+    "jose": ["jose@5.10.0", "", {}, "sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg=="],
+
     "js-yaml": ["js-yaml@4.2.0", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw=="],
 
     "json-buffer": ["json-buffer@3.0.1", "", {}, "sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ=="],
@@ -683,6 +709,8 @@
     "yallist": ["yallist@4.0.0", "", {}, "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A=="],
 
     "yocto-queue": ["yocto-queue@0.1.0", "", {}, "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q=="],
+
+    "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
 
