@@ -1,0 +1,106 @@
+name: CI
+
+# Roda os testes em todo push e pull request (bônus B7).
+# Dois jobs: `quality` (lint + typecheck + unit, sem infra — rápido) e `e2e` (sobe a
+# infra via docker compose e roda a suíte de integração/E2E). Mesmos comandos do dev local.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# Cancela execuções antigas do mesmo ref quando chega um push novo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUN_VERSION: "1.3.14"
+
+jobs:
+  quality:
+    name: Lint · Typecheck · Unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Unit tests
+        run: bun run test
+
+  e2e:
+    name: E2E (Postgres · SQS · Valkey · Keycloak)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Só a infra (os testes E2E sobem o AppModule no processo do runner; não precisam dos
+      # containers games/wallets). Postgres cria games_test/wallets_test no init; o LocalStack
+      # cria as filas no ready.d; Keycloak importa o realm + usuário de teste.
+      - name: Start infra (docker compose)
+        run: docker compose up -d postgres localstack valkey keycloak
+
+      - name: Wait for infra to be healthy
+        run: |
+          set -e
+          services="postgres localstack valkey keycloak"
+          for i in $(seq 1 60); do
+            unhealthy=0
+            for s in $services; do
+              cid=$(docker compose ps -q "$s")
+              status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid")
+              if [ "$status" != "healthy" ]; then
+                unhealthy=1
+              fi
+            done
+            if [ "$unhealthy" -eq 0 ]; then
+              echo "Infra healthy."
+              exit 0
+            fi
+            echo "Aguardando infra... ($i/60)"
+            sleep 5
+          done
+          echo "Infra não ficou healthy a tempo:"
+          docker compose ps
+          exit 1
+
+      - name: E2E tests
+        run: bun run test:e2e
+
+      - name: Dump service logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=200
