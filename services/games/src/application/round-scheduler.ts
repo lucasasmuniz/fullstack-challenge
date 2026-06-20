@@ -14,6 +14,7 @@ import {
   RoundConcurrencyError,
   type RoundRepository,
 } from "./round.repository";
+import { BET_REPOSITORY, type BetRepository } from "./bet.repository";
 import { ROUND_OPENER, type RoundOpener } from "./round-opener";
 import { SeedBuffer } from "./seed-buffer";
 import { SeedChainService } from "./seed-chain.service";
@@ -40,6 +41,7 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
 
   constructor(
     @Inject(ROUND_REPOSITORY) private readonly rounds: RoundRepository,
+    @Inject(BET_REPOSITORY) private readonly bets: BetRepository,
     @Inject(ROUND_OPENER) private readonly opener: RoundOpener,
     private readonly seedBuffer: SeedBuffer,
     private readonly seedChain: SeedChainService,
@@ -255,6 +257,13 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async settleRound(round: Round): Promise<void> {
+    // Liquidação das apostas (líder-inline, ADR 0018): BULK UPDATE das CONFIRMED→LOST, sem
+    // hidratar agregado nem mover dinheiro (perder = a casa já tem o débito). Idempotente,
+    // roda antes de marcar a rodada SETTLED → o recovery (rodada CRASHED) reexecuta sem dano.
+    const lost = await this.bets.markRoundLost(round.id);
+    if (lost > 0) {
+      this.logger.log(`Rodada #${round.roundNumber}: ${lost} aposta(s) liquidada(s) (LOST).`);
+    }
     const res = round.settle(this.now());
     if (res.isFail) {
       await this.reconcile();
