@@ -7,8 +7,11 @@ import { createOrmConfig } from "./infrastructure/database/orm.config";
 import { GamesController } from "./presentation/controllers/games.controller";
 import { AuthController } from "./presentation/controllers/auth.controller";
 import { RoundsController } from "./presentation/controllers/rounds.controller";
+import { BetsController } from "./presentation/controllers/bets.controller";
 import { ProvablyFairDomainService } from "./domain";
 import { ROUND_REPOSITORY } from "./application/round.repository";
+import { BET_REPOSITORY } from "./application/bet.repository";
+import { BET_QUERY_REPOSITORY } from "./application/bet-query.repository";
 import { ROUND_OPENER } from "./application/round-opener";
 import { SEED_CHAIN_REPOSITORY } from "./application/seed-chain.repository";
 import { CHAIN_GENERATOR } from "./application/chain-generator.port";
@@ -17,6 +20,15 @@ import { VALKEY } from "./application/valkey.port";
 import { MikroOrmRoundRepository } from "./infrastructure/persistence/mikro-orm-round.repository";
 import { MikroOrmRoundOpener } from "./infrastructure/persistence/mikro-orm-round-opener";
 import { MikroOrmSeedChainRepository } from "./infrastructure/persistence/mikro-orm-seed-chain.repository";
+import { MikroOrmBetRepository } from "./infrastructure/persistence/mikro-orm-bet.repository";
+import { MikroOrmBetQueryRepository } from "./infrastructure/persistence/mikro-orm-bet-query.repository";
+import { MikroOrmOutboxStore } from "./infrastructure/messaging/mikro-orm-outbox.store";
+import { sqsClientProvider } from "./infrastructure/messaging/sqs.providers";
+import { OutboxRelayService } from "./infrastructure/messaging/outbox-relay.service";
+import { GameInboxConsumer } from "./infrastructure/messaging/game-inbox.consumer";
+import { PlaceBetHandler } from "./application/place-bet.handler";
+import { CashoutHandler } from "./application/cashout.handler";
+import { BetSagaService } from "./application/bet-saga.service";
 import { IoredisValkeyClient } from "./infrastructure/valkey/ioredis-valkey.client";
 import { WorkerChainGenerator } from "./infrastructure/seed/worker-chain-generator";
 import { DrandPublicSeedBeacon } from "./infrastructure/seed/drand-public-seed-beacon";
@@ -39,7 +51,7 @@ const env = loadGamesEnv();
       expectedTokenType: "Bearer",
     }),
   ],
-  controllers: [GamesController, AuthController, RoundsController],
+  controllers: [GamesController, AuthController, RoundsController, BetsController],
   providers: [
     { provide: ENV, useValue: env },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
@@ -47,6 +59,8 @@ const env = loadGamesEnv();
     ProvablyFairDomainService,
     // Ports → adapters (hexagonal).
     { provide: ROUND_REPOSITORY, useClass: MikroOrmRoundRepository },
+    { provide: BET_REPOSITORY, useClass: MikroOrmBetRepository },
+    { provide: BET_QUERY_REPOSITORY, useClass: MikroOrmBetQueryRepository },
     { provide: ROUND_OPENER, useClass: MikroOrmRoundOpener },
     { provide: SEED_CHAIN_REPOSITORY, useClass: MikroOrmSeedChainRepository },
     { provide: CHAIN_GENERATOR, useClass: WorkerChainGenerator },
@@ -57,8 +71,16 @@ const env = loadGamesEnv();
     SeedBuffer,
     LeaderLease,
     RoundQueryService,
+    PlaceBetHandler,
+    CashoutHandler,
+    BetSagaService,
     // Engine autoritativo (inicia no OnApplicationBootstrap).
     RoundScheduler,
+    // Saga / mensageria SQS (Etapa 5).
+    sqsClientProvider,
+    MikroOrmOutboxStore,
+    OutboxRelayService,
+    GameInboxConsumer,
   ],
   exports: [ENV],
 })
