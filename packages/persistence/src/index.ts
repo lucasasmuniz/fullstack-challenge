@@ -1,6 +1,11 @@
 import { UnderscoreNamingStrategy } from "@mikro-orm/core";
 import { defineConfig, type Options } from "@mikro-orm/postgresql";
 
+export {
+  createMikroOrmOutboxStore,
+  type OutboxRowShape,
+} from "./mikro-orm-outbox.store";
+
 /**
  * Preset base de MikroORM compartilhado pelos serviços (Etapa 0: só deps + preset).
  * NÃO conecta nada e NÃO declara entidades — apenas consolida opções comuns.
@@ -24,6 +29,18 @@ export function baseMikroOrmConfig(overrides: Options): Options {
     },
     forceUtcTimezone: true,
     debug: false,
+    // Pool explícito + timeouts no nível do Postgres (defesa em profundidade junto com o
+    // timeout do SQS). `statement_timeout` mata uma query travada (deadlock/lock longo) antes
+    // que ela congele o consumer loop; `idle_in_transaction_session_timeout` aborta uma tx
+    // ociosa — limita o caso do relay segurar a tx enquanto publica no SQS (é > o
+    // `requestTimeout` do SQS, ~30s, para não abortar um relay saudável).
+    pool: { min: 2, max: 10 },
+    driverOptions: {
+      connection: {
+        statement_timeout: 30000,
+        idle_in_transaction_session_timeout: 60000,
+      },
+    },
     ...overrides,
   });
 }

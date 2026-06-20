@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@crash-game/messaging": "workspace:*",
     "@mikro-orm/core": "^6.4.0",
     "@mikro-orm/postgresql": "^6.4.0"
   }
