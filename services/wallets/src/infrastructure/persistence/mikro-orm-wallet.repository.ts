@@ -1,10 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { EntityManager } from "@mikro-orm/postgresql";
 import { Wallet, type WalletDomainEvent, type WalletReason } from "../../domain";
-import type { WalletRepository } from "../../application/wallet.repository";
+import type {
+  InboxRef,
+  OutboxMessage,
+  WalletRepository,
+} from "../../application/wallet.repository";
 import type { WalletView } from "../../application/wallet.view";
 import { WalletEntity } from "./wallet.entity";
 import { WalletEventEntity } from "./wallet-event.entity";
+import { OutboxEntity } from "./outbox.entity";
+import { InboxEntity } from "./inbox.entity";
 import { toDomainEvent, toRow } from "./wallet-event.mapper";
 
 /**
@@ -97,5 +103,65 @@ export class MikroOrmWalletRepository implements WalletRepository {
       correlationId,
     });
     return row ? { amountCents: row.amountCents } : null;
+  }
+
+  async appendSagaResult(
+    wallet: Wallet | null,
+    outbox: OutboxMessage,
+    inbox: InboxRef,
+  ): Promise<void> {
+    const events = (wallet?.pullEvents() ?? []) as WalletDomainEvent[];
+    const now = new Date();
+    await this.em.transactional(async (em) => {
+      // Inbox dedup PRIMEIRO: conflito aqui aborta a tx (idempotência de mensagem).
+      await em.insert(InboxEntity, {
+        messageId: inbox.messageId,
+        type: inbox.type,
+        processedAt: now,
+      });
+
+      // Append dos eventos (vazio se carteira ausente ou débito recusado — saldo intacto).
+      for (const event of events) {
+        em.persist(em.create(WalletEventEntity, toRow(event)));
+      }
+      if (wallet && events.length > 0) {
+        const projection = await em.findOne(WalletEntity, { id: wallet.id });
+        if (projection) {
+          projection.balanceCents = wallet.balance.toCents();
+          projection.version = wallet.version;
+        } else {
+          em.persist(
+            em.create(WalletEntity, {
+              id: wallet.id,
+              playerId: wallet.playerId,
+              balanceCents: wallet.balance.toCents(),
+              version: wallet.version,
+              currency: wallet.currency,
+              createdAt: now,
+              updatedAt: now,
+            }),
+          );
+        }
+      }
+
+      // Outbox da resposta (publicada pelo relay após o commit → game-inbox).
+      em.persist(
+        em.create(OutboxEntity, {
+          id: outbox.id,
+          type: outbox.type,
+          payload: outbox.payload,
+          status: "pending",
+          attempts: 0,
+          nextAttemptAt: now,
+          createdAt: now,
+          sentAt: null,
+        }),
+      );
+    });
+  }
+
+  async wasMessageProcessed(messageId: string): Promise<boolean> {
+    const row = await this.em.fork().findOne(InboxEntity, { messageId });
+    return row !== null;
   }
 }

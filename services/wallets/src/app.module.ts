@@ -14,6 +14,11 @@ import { GetWalletHandler } from "./application/get-wallet.handler";
 import { DepositHandler } from "./application/deposit.handler";
 import { WithdrawHandler } from "./application/withdraw.handler";
 import { WalletMovementService } from "./application/wallet-movement.service";
+import { WalletSagaService } from "./application/wallet-saga.service";
+import { MikroOrmOutboxStore } from "./infrastructure/messaging/mikro-orm-outbox.store";
+import { sqsClientProvider } from "./infrastructure/messaging/sqs.providers";
+import { OutboxRelayService } from "./infrastructure/messaging/outbox-relay.service";
+import { WalletInboxConsumer } from "./infrastructure/messaging/wallet-inbox.consumer";
 
 // Carregado no import do módulo => fail-fast no bootstrap se faltar/for inválida
 // alguma env declarada (o serviço não sobe).
@@ -40,6 +45,12 @@ const env = loadWalletsEnv();
     GetWalletHandler,
     DepositHandler,
     WithdrawHandler,
+    // Saga / mensageria SQS (Etapa 5).
+    WalletSagaService,
+    sqsClientProvider,
+    MikroOrmOutboxStore,
+    OutboxRelayService,
+    WalletInboxConsumer,
   ],
   exports: [ENV],
 })

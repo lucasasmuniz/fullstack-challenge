@@ -3,8 +3,11 @@ import type { Options } from "@mikro-orm/postgresql";
 import { Migrator } from "@mikro-orm/migrations";
 import { WalletEntity } from "../persistence/wallet.entity";
 import { WalletEventEntity } from "../persistence/wallet-event.entity";
+import { OutboxEntity } from "../persistence/outbox.entity";
+import { InboxEntity } from "../persistence/inbox.entity";
 import { Migration20260619000100 } from "../../migrations/Migration20260619000100";
 import { Migration20260619000200 } from "../../migrations/Migration20260619000200";
+import { Migration20260620000100 } from "../../migrations/Migration20260620000100";
 
 /**
  * Config MikroORM do Wallet Service. Registra o event store (`wallet_event`) e a
@@ -18,7 +21,7 @@ import { Migration20260619000200 } from "../../migrations/Migration2026061900020
 export function createOrmConfig(databaseUrl: string): Options {
   return baseMikroOrmConfig({
     clientUrl: databaseUrl,
-    entities: [WalletEntity, WalletEventEntity],
+    entities: [WalletEntity, WalletEventEntity, OutboxEntity, InboxEntity],
     // No MikroORM v6 a extensão Migrator não é auto-registrada só por estar
     // instalada — precisa entrar em `extensions` para o `orm.migrator` existir.
     extensions: [Migrator],
@@ -32,6 +35,10 @@ export function createOrmConfig(databaseUrl: string): Options {
         {
           name: "Migration20260619000200",
           class: Migration20260619000200,
+        },
+        {
+          name: "Migration20260620000100",
+          class: Migration20260620000100,
         },
       ],
     },
