@@ -1,4 +1,5 @@
-// TODO(Etapas 2/5): infra de mensageria compartilhada — cliente SQS, outbox/inbox
-// transacionais e o relay (worker poller com backoff/attempts). Exactly-once:
-// outbox transacional + inbox idempotente por id.
-export {};
+export * from "./sqs-client";
+export * from "./outbox";
+export * from "./inbox";
+export * from "./sqs-consumer";
+export * from "./host";

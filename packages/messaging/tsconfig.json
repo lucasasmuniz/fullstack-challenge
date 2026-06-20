@@ -1,4 +1,4 @@
 {
   "extends": "@crash-game/typescript-config/tsconfig.json",
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
