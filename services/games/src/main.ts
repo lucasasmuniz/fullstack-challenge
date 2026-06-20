@@ -12,6 +12,9 @@ async function bootstrap(): Promise<void> {
 
   await app.get(MikroORM).migrator.up();
 
+  // Necessário para OnModuleDestroy (RoundScheduler solta o lease + quit do Valkey no SIGTERM).
+  app.enableShutdownHooks();
+
   await app.listen(env.PORT, "0.0.0.0");
   new Logger("Bootstrap").log(`Games service running on port ${env.PORT}`);
 }
