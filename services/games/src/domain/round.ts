@@ -24,6 +24,9 @@ export interface RoundState {
   serverSeedHash: string;
   serverSeed: string;
   publicSeed: string;
+  /** Cadeia de origem da seed (auditoria + detectar fronteira de rotação no verify). */
+  chainId: string;
+  chainIndex: number;
   version: number;
   bettingEndsAt: Date;
   startedAt: Date | null;
@@ -47,6 +50,8 @@ export class Round extends AggregateRoot<string> {
   private _serverSeedHash: string;
   private _serverSeed: string;
   private _publicSeed: string;
+  private _chainId: string;
+  private _chainIndex: number;
   private _version: number;
   private _bettingEndsAt: Date;
   private _startedAt: Date | null;
@@ -61,6 +66,8 @@ export class Round extends AggregateRoot<string> {
     this._serverSeedHash = state.serverSeedHash;
     this._serverSeed = state.serverSeed;
     this._publicSeed = state.publicSeed;
+    this._chainId = state.chainId;
+    this._chainIndex = state.chainIndex;
     this._version = state.version;
     this._bettingEndsAt = state.bettingEndsAt;
     this._startedAt = state.startedAt;
@@ -88,6 +95,12 @@ export class Round extends AggregateRoot<string> {
   }
   get publicSeed(): string {
     return this._publicSeed;
+  }
+  get chainId(): string {
+    return this._chainId;
+  }
+  get chainIndex(): number {
+    return this._chainIndex;
   }
   get version(): number {
     return this._version;
@@ -143,6 +156,8 @@ export class Round extends AggregateRoot<string> {
       serverSeed: string;
       serverSeedHash: string;
       publicSeed: string;
+      chainId: string;
+      chainIndex: number;
       bettingEndsAt: Date;
     },
     provablyFair: ProvablyFairDomainService,
@@ -164,6 +179,8 @@ export class Round extends AggregateRoot<string> {
       serverSeedHash: props.serverSeedHash,
       serverSeed: props.serverSeed,
       publicSeed: props.publicSeed,
+      chainId: props.chainId,
+      chainIndex: props.chainIndex,
       version: 1,
       bettingEndsAt: props.bettingEndsAt,
       startedAt: null,
@@ -240,5 +257,30 @@ export class Round extends AggregateRoot<string> {
    */
   static reconstitute(state: RoundState): Round {
     return new Round(state);
+  }
+
+  /**
+   * Snapshot completo para **persistência** (infraestrutura) — inverso de `reconstitute`.
+   * Inclui `serverSeed` (uso server-side, trusted). A **apresentação NUNCA** serializa
+   * este snapshot: para revelar a seed usa `getServerSeed()` (com guarda); para a rodada
+   * corrente os DTOs usam getters específicos que excluem `serverSeed`/`crashPointX100`.
+   */
+  snapshot(): RoundState {
+    return {
+      roundId: this.id,
+      roundNumber: this._roundNumber,
+      status: this._status,
+      crashPointX100: this._crashPointX100,
+      serverSeedHash: this._serverSeedHash,
+      serverSeed: this._serverSeed,
+      publicSeed: this._publicSeed,
+      chainId: this._chainId,
+      chainIndex: this._chainIndex,
+      version: this._version,
+      bettingEndsAt: this._bettingEndsAt,
+      startedAt: this._startedAt,
+      crashedAt: this._crashedAt,
+      settledAt: this._settledAt,
+    };
   }
 }

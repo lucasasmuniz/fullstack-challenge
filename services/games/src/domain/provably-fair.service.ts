@@ -91,12 +91,9 @@ export class ProvablyFairDomainService {
     }
 
     const raw = (100n * RESOLUTION - h) / (RESOLUTION - h);
-    const bounded =
-      raw > policy.maxCrashX100
-        ? policy.maxCrashX100
-        : raw < MIN_CRASH_X100
-          ? MIN_CRASH_X100
-          : raw;
+    // raw >= 100 sempre: h < 2^52 = RESOLUTION ⇒ (100·e − h)/(e − h) ≥ 100. Logo só o
+    // teto (maxCrashX100) pode atuar; não há piso a aplicar aqui.
+    const bounded = raw > policy.maxCrashX100 ? policy.maxCrashX100 : raw;
     return Number(bounded);
   }
 
