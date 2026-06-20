@@ -61,3 +61,38 @@ export class BetNotConfirmedError extends DomainError {
     super("Aposta não está confirmada");
   }
 }
+
+/**
+ * Jogador já apostou nesta rodada (invariante "1 aposta/jogador/rodada", imposta por
+ * `UNIQUE(round_id, player_id)` no banco — ADR 0012). Mapeado para HTTP 409.
+ */
+export class BetAlreadyExistsError extends DomainError {
+  readonly code = "BET_ALREADY_EXISTS";
+  constructor() {
+    super("Jogador já possui uma aposta nesta rodada");
+  }
+}
+
+/** Não há rodada em fase de apostas (`BETTING`) agora. Mapeado para HTTP 409. */
+export class NoBettingRoundError extends DomainError {
+  readonly code = "NO_BETTING_ROUND";
+  constructor() {
+    super("Não há rodada em fase de apostas no momento");
+  }
+}
+
+/** Cashout fora de uma rodada em andamento (`RUNNING`). Mapeado para HTTP 409. */
+export class RoundNotRunningError extends DomainError {
+  readonly code = "ROUND_NOT_RUNNING";
+  constructor() {
+    super("Não há rodada em andamento para sacar");
+  }
+}
+
+/** Jogador não tem aposta nesta rodada para sacar. Mapeado para HTTP 404. */
+export class NoBetToCashoutError extends DomainError {
+  readonly code = "NO_BET_TO_CASHOUT";
+  constructor() {
+    super("Nenhuma aposta sua nesta rodada para sacar");
+  }
+}

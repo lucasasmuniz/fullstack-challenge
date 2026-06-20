@@ -6,8 +6,12 @@ import {
   SeedChainEntity,
   SeedChainSeedEntity,
 } from "../persistence/seed-chain.entity";
+import { BetEntity } from "../persistence/bet.entity";
+import { OutboxEntity } from "../persistence/outbox.entity";
+import { InboxEntity } from "../persistence/inbox.entity";
 import { Migration20260619000100 } from "../../migrations/Migration20260619000100";
 import { Migration20260619000200 } from "../../migrations/Migration20260619000200";
+import { Migration20260620000100 } from "../../migrations/Migration20260620000100";
 
 /**
  * Config MikroORM do Game Service: estado da rodada (`round`) + cold storage da cadeia de
@@ -19,13 +23,21 @@ import { Migration20260619000200 } from "../../migrations/Migration2026061900020
 export function createOrmConfig(databaseUrl: string): Options {
   return baseMikroOrmConfig({
     clientUrl: databaseUrl,
-    entities: [RoundEntity, SeedChainEntity, SeedChainSeedEntity],
+    entities: [
+      RoundEntity,
+      SeedChainEntity,
+      SeedChainSeedEntity,
+      BetEntity,
+      OutboxEntity,
+      InboxEntity,
+    ],
     extensions: [Migrator],
     migrations: {
       disableForeignKeys: false,
       migrationsList: [
         { name: "Migration20260619000100", class: Migration20260619000100 },
         { name: "Migration20260619000200", class: Migration20260619000200 },
+        { name: "Migration20260620000100", class: Migration20260620000100 },
       ],
     },
   });

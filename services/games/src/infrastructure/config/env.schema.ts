@@ -18,6 +18,22 @@ export const gamesEnvSchema = z.object({
 
   VALKEY_URL: z.string().url(),
 
+  // --- Saga / mensageria (Etapa 5) ---
+  // Liga/desliga os loops de SQS (relay + consumer) nesta instância (false em testes de auth/REST).
+  MESSAGING_ENABLED: z
+    .union([z.boolean(), z.string()])
+    .transform((v) => v === true || v === "true" || v === "1")
+    .default(true),
+  OUTBOX_RELAY_INTERVAL_MS: z.coerce.number().int().positive().default(1000),
+  OUTBOX_RELAY_BATCH_SIZE: z.coerce.number().int().positive().default(20),
+  SQS_WAIT_TIME_SECONDS: z.coerce.number().int().min(0).max(20).default(20),
+  SQS_MAX_MESSAGES: z.coerce.number().int().min(1).max(10).default(10),
+  SQS_VISIBILITY_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(30),
+
+  // --- Limites de aposta (centavos) — min 1,00 / max 1.000,00 (README) ---
+  BET_MIN_CENTS: z.coerce.number().int().positive().default(100),
+  BET_MAX_CENTS: z.coerce.number().int().positive().default(100000),
+
   // --- Engine / curva (Etapa 4) — timings e curva configuráveis, nada hardcoded ---
   CRASH_GROWTH_RATE: z.coerce.number().positive().default(0.06),
   BETTING_WINDOW_MS: z.coerce.number().int().positive().default(8000),

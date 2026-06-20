@@ -7,6 +7,7 @@ import {
   BetConfirmed,
   BetLost,
   BetPlaced,
+  BetRefunded,
   BetRejected,
 } from "./bet-events";
 import {
@@ -243,6 +244,23 @@ export class Bet extends AggregateRoot<string> {
     this._resolvedAt = now;
     this._version += 1;
     this.addEvent(new BetLost(this.id, now, now));
+    return Result.ok(undefined);
+  }
+
+  /**
+   * `PENDING_FUNDS → REFUNDED` — compensação de late-debit: o débito confirmou **depois**
+   * de a rodada já ter terminado (a aposta nunca participou), então o valor é restituído
+   * (a aplicação emite o crédito de refund). Só sai de `PENDING_FUNDS` (se já está
+   * `CONFIRMED`/`REJECTED`/terminal, não é caso de refund) → reusa `BetNotPendingError`.
+   */
+  refund(now: Date): Result<void, BetNotPendingError> {
+    if (this._status !== BetStatus.PENDING_FUNDS) {
+      return Result.fail(new BetNotPendingError());
+    }
+    this._status = BetStatus.REFUNDED;
+    this._resolvedAt = now;
+    this._version += 1;
+    this.addEvent(new BetRefunded(this.id, now, now));
     return Result.ok(undefined);
   }
 

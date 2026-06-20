@@ -68,9 +68,25 @@ export class BetLost extends DomainEvent {
   }
 }
 
+/**
+ * Compensação de late-debit: o débito confirmou **depois** da rodada já ter terminado
+ * (a aposta nunca jogou) → o valor é restituído. Ver ADR 0004 (compensação da saga).
+ */
+export class BetRefunded extends DomainEvent {
+  readonly eventName = "BetRefunded";
+  constructor(
+    readonly betId: string,
+    readonly refundedAt: Date,
+    occurredAt?: Date,
+  ) {
+    super(occurredAt);
+  }
+}
+
 export type BetDomainEvent =
   | BetPlaced
   | BetConfirmed
   | BetRejected
   | BetCashedOut
-  | BetLost;
+  | BetLost
+  | BetRefunded;

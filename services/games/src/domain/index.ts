@@ -30,6 +30,7 @@ export {
   BetRejected,
   BetCashedOut,
   BetLost,
+  BetRefunded,
   type BetDomainEvent,
 } from "./bet-events";
 export {
@@ -40,4 +41,8 @@ export {
   InvalidCashoutMultiplierError,
   CashoutAboveCrashError,
   BetNotConfirmedError,
+  BetAlreadyExistsError,
+  NoBettingRoundError,
+  RoundNotRunningError,
+  NoBetToCashoutError,
 } from "./bet-errors";

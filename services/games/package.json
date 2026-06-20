@@ -11,8 +11,10 @@
     "test:e2e": "RUN_E2E=1 bun test tests/e2e"
   },
   "dependencies": {
+    "@crash-game/contracts": "workspace:*",
     "@crash-game/curve": "workspace:*",
     "@crash-game/domain-kit": "workspace:*",
+    "@crash-game/messaging": "workspace:*",
     "@crash-game/money": "workspace:*",
     "@crash-game/nestjs-kit": "workspace:*",
     "@crash-game/persistence": "workspace:*",
