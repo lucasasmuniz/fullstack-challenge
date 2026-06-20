@@ -98,6 +98,15 @@ class FakeWalletRepository implements WalletRepository {
     return Promise.resolve(match ? { amountCents: match.amountCents } : null);
   }
 
+  // Saga (Etapa 5): não exercitado por estes testes de deposit/withdraw (REST).
+  appendSagaResult(): Promise<void> {
+    return Promise.reject(new Error("appendSagaResult não usado nestes testes"));
+  }
+
+  wasMessageProcessed(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
+
   private persist(wallet: Wallet): void {
     const stream = this.events.get(wallet.id) ?? [];
     for (const event of wallet.pullEvents() as WalletDomainEvent[]) {

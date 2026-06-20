@@ -29,5 +29,7 @@ setDefault(
   "http://localhost:4566/000000000000/game-inbox",
 );
 setDefault("VALKEY_URL", "redis://localhost:6379");
+// Testes que sobem o AppModule não devem ligar os loops de SQS (consumer/relay).
+setDefault("MESSAGING_ENABLED", "false");
 
 export {};
