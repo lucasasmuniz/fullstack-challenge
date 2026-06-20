@@ -7,7 +7,9 @@ function setDefault(key: string, value: string): void {
 
 const KEYCLOAK_URL = process.env.KEYCLOAK_URL ?? "http://localhost:8080";
 
-setDefault("DATABASE_URL", "postgresql://admin:admin@localhost:5432/games");
+// Banco ISOLADO para e2e (games_test) — não polui o `games` de dev/demo. As migrations
+// rodam nele no beforeAll de cada teste.
+setDefault("DATABASE_URL", "postgresql://admin:admin@localhost:5432/games_test");
 setDefault("KEYCLOAK_ISSUER", `${KEYCLOAK_URL}/realms/crash-game`);
 setDefault(
   "KEYCLOAK_JWKS_URI",
@@ -27,5 +29,9 @@ setDefault(
   "http://localhost:4566/000000000000/wallet-inbox",
 );
 setDefault("VALKEY_URL", "redis://localhost:6379");
+// Testes que sobem o AppModule (ex.: auth) NÃO devem ligar o engine nem bater no beacon
+// externo (M5/isolamento). Os testes de engine instanciam os componentes diretamente.
+setDefault("SCHEDULER_ENABLED", "false");
+setDefault("BEACON_ENABLED", "false");
 
 export {};
