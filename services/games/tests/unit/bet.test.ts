@@ -8,6 +8,7 @@ import {
   BetConfirmed,
   BetLost,
   BetPlaced,
+  BetRefunded,
   BetRejected,
 } from "../../src/domain/bet-events";
 
@@ -209,6 +210,29 @@ describe("Bet", () => {
       bet.cashout(200, 500, NOW);
       expect(bet.markLost(NOW).isFail).toBe(true);
       expect(bet.status).toBe(BetStatus.CASHED_OUT);
+    });
+  });
+
+  describe("refund (compensação de late-debit)", () => {
+    it("PENDING_FUNDS → REFUNDED emite BetRefunded", () => {
+      const bet = placeBet();
+      expect(bet.refund(NOW).isOk).toBe(true);
+      expect(bet.status).toBe(BetStatus.REFUNDED);
+      const events = bet.pullEvents();
+      expect(events[events.length - 1]).toBeInstanceOf(BetRefunded);
+    });
+
+    it("refund fora de PENDING_FUNDS → fail (não é caso de refund)", () => {
+      const bet = confirmedBet();
+      expect(bet.refund(NOW).unwrapError().code).toBe("BET_NOT_PENDING");
+      expect(bet.status).toBe(BetStatus.CONFIRMED);
+    });
+
+    it("não refunda duas vezes (estado terminal)", () => {
+      const bet = placeBet();
+      bet.refund(NOW);
+      expect(bet.refund(NOW).isFail).toBe(true);
+      expect(bet.status).toBe(BetStatus.REFUNDED);
     });
   });
 

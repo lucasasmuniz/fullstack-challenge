@@ -33,5 +33,7 @@ setDefault("VALKEY_URL", "redis://localhost:6379");
 // externo (M5/isolamento). Os testes de engine instanciam os componentes diretamente.
 setDefault("SCHEDULER_ENABLED", "false");
 setDefault("BEACON_ENABLED", "false");
+// Testes que sobem o AppModule não devem ligar os loops de SQS (consumer/relay).
+setDefault("MESSAGING_ENABLED", "false");
 
 export {};
