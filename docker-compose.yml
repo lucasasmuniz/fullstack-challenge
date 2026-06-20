@@ -10,7 +10,8 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: postgres
-      POSTGRES_EXTRA_DATABASES: games,wallets
+      # *_test: bancos isolados para os testes e2e (não poluem games/wallets de dev/demo)
+      POSTGRES_EXTRA_DATABASES: games,wallets,games_test,wallets_test
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
@@ -126,6 +127,18 @@ services:
       SQS_INBOX_QUEUE_URL: http://localstack:4566/000000000000/game-inbox
       SQS_OUTBOUND_QUEUE_URL: http://localstack:4566/000000000000/wallet-inbox
       VALKEY_URL: redis://valkey:6379
+      # Engine / curva (Etapa 4) — tunáveis (defaults no zod cobrem o restante)
+      CRASH_GROWTH_RATE: "0.06"
+      BETTING_WINDOW_MS: "8000"
+      TICK_INTERVAL_MS: "250"
+      INTER_ROUND_DELAY_MS: "3000"
+      # Tamanho da cadeia pré-gerada. 1000 = dev/teste (boot/recriação rápidos);
+      # aumente (ex.: 100000) na entrega para um horizonte de pré-commitment maior.
+      SEED_CHAIN_LENGTH: "1000"
+      SCHEDULER_LEASE_TTL_MS: "10000"
+      SCHEDULER_ENABLED: "true"
+      # Beacon drand (anti-pré-computação); offline → fallback CSPRNG (sobe normal)
+      BEACON_ENABLED: "true"
     depends_on:
       postgres:
         condition: service_healthy

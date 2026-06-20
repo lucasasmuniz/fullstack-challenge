@@ -1,0 +1,15 @@
+# Override SÓ para testar eleição de líder com múltiplas instâncias do games.
+# Substitui a porta fixa do host (4001:4001) por um range, para o `--scale games=N`
+# não colidir. Cada instância pega uma porta do host (4001, 4002, ...); o container
+# continua em 4001. NÃO é usado no docker:up normal (a entrega mantém 4001 fixa).
+#
+# Uso:
+#   docker compose down
+#   docker compose -f docker-compose.yml -f docker-compose.scale.yml up --build --scale games=2
+#
+# Observe os logs: só UMA instância loga "Liderança adquirida"; a outra fica tentando.
+# Pare a líder (docker stop <id>) e a outra assume com "Recovery: ...".
+services:
+  games:
+    ports: !override
+      - "4001-4010:4001"
