@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useGameSocket } from "@/hooks/use-game-socket";
 import { useCrashEngine } from "@/hooks/use-crash-engine";
+import { useGameSounds } from "@/hooks/use-game-sounds";
 import { useCurrentRound, useRoundHistory } from "@/hooks/use-rounds";
 import { useGameStore } from "@/stores/game-store";
 import { CrashChart } from "@/components/game/crash-chart";
@@ -18,6 +19,7 @@ import { BetPanel } from "@/components/game/bet-panel";
 export default function GamePage() {
   useGameSocket();
   useCrashEngine();
+  useGameSounds();
 
   const { data: current } = useCurrentRound();
   const { data: history } = useRoundHistory();
