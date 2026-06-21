@@ -23,33 +23,36 @@ export function unlockAudio(): void {
   audio();
 }
 
-function tone(freq: number, durationMs: number, type: OscillatorType, gain = 0.16): void {
+function tone(freq: number, durationMs: number, type: OscillatorType, gain = 0.5): void {
   const ac = audio();
   if (!ac) return;
   const osc = ac.createOscillator();
   const vol = ac.createGain();
   osc.type = type;
   osc.frequency.value = freq;
-  vol.gain.setValueAtTime(gain, ac.currentTime);
-  vol.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + durationMs / 1000);
+  const t0 = ac.currentTime;
+  const dur = durationMs / 1000;
+  vol.gain.setValueAtTime(0.0001, t0);
+  vol.gain.exponentialRampToValueAtTime(gain, t0 + 0.01); // attack rápido (audível)
+  vol.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   osc.connect(vol).connect(ac.destination);
-  osc.start();
-  osc.stop(ac.currentTime + durationMs / 1000);
+  osc.start(t0);
+  osc.stop(t0 + dur);
 }
 
 /** Aposta confirmada: blip curto. */
 export function playBet(): void {
-  tone(440, 90, "triangle");
+  tone(440, 120, "triangle", 0.45);
 }
 
 /** Cashout: dois tons ascendentes (celebração). */
 export function playCashout(): void {
-  tone(660, 110, "sine");
-  setTimeout(() => tone(880, 140, "sine"), 90);
+  tone(660, 140, "sine", 0.5);
+  setTimeout(() => tone(880, 180, "sine", 0.5), 100);
 }
 
 /** Crash: tom grave descendente. */
 export function playCrash(): void {
-  tone(180, 260, "sawtooth", 0.12);
-  setTimeout(() => tone(110, 320, "sawtooth", 0.12), 80);
+  tone(200, 280, "sawtooth", 0.4);
+  setTimeout(() => tone(110, 340, "sawtooth", 0.4), 90);
 }

@@ -66,6 +66,7 @@ export function SettingsModal() {
                       checked={prefs[row.key]}
                       onChange={() => prefs.toggle(row.key)}
                       label={row.label}
+                      disabled={disabled}
                     />
                   </div>
                 );
