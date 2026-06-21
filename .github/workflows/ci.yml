@@ -1,8 +1,9 @@
 name: CI
 
-# Roda os testes em todo push e pull request (bônus B7).
-# Dois jobs: `quality` (lint + typecheck + unit, sem infra — rápido) e `e2e` (sobe a
-# infra via docker compose e roda a suíte de integração/E2E). Mesmos comandos do dev local.
+# Roda os testes em todo push e pull request (bônus B7). Quatro jobs:
+# `quality` (lint + typecheck + unit + build do front, sem infra — rápido), `e2e` (sobe a infra e
+# roda a suíte de integração/E2E por serviço), `system` (stack completa via Kong + crash fixo) e
+# `playwright` (E2E de browser do frontend). Mesmos comandos do dev local.
 on:
   push:
     branches: ["**"]
@@ -172,3 +173,84 @@ jobs:
       - name: Dump service logs on failure
         if: failure()
         run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml logs --no-color --tail=200
+
+  playwright:
+    name: Frontend E2E (Playwright · espectador)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Backend completo (games + Kong + infra): o teste de espectador exercita o jogo ao vivo
+      # (multiplicador via WS). O container do frontend NÃO sobe — em CI o Playwright sobe o seu
+      # próprio `next start` na :3000 (reuseExistingServer=false), que então fala com o Kong (:8000).
+      - name: Start backend stack (docker compose)
+        run: docker compose up -d --build postgres localstack valkey keycloak kong games wallets
+
+      - name: Wait for stack to be healthy
+        run: |
+          set -e
+          services="postgres localstack valkey keycloak kong games wallets"
+          for i in $(seq 1 60); do
+            unhealthy=0
+            for s in $services; do
+              cid=$(docker compose ps -q "$s")
+              status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid")
+              if [ "$status" != "healthy" ]; then
+                unhealthy=1
+              fi
+            done
+            if [ "$unhealthy" -eq 0 ]; then
+              echo "Stack healthy."
+              exit 0
+            fi
+            echo "Aguardando stack... ($i/60)"
+            sleep 5
+          done
+          echo "Stack não ficou healthy a tempo:"
+          docker compose ps
+          exit 1
+
+      # Build de produção do front (o webServer do Playwright roda `next start`); os NEXT_PUBLIC_*
+      # caem nos defaults (localhost:8000/8080), que batem no Kong/Keycloak mapeados no runner.
+      - name: Build frontend
+        working-directory: frontend
+        run: bun run build
+
+      # Baixa o Chromium + libs de sistema (libatk etc.) — o que falta no WSL local.
+      - name: Install Playwright browser + system deps
+        working-directory: frontend
+        run: bunx playwright install --with-deps chromium
+
+      - name: Playwright tests
+        working-directory: frontend
+        run: bun run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Dump service logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=200
