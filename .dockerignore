@@ -7,10 +7,11 @@
 .git
 .gitignore
 docs
-# O frontend não vai pras imagens dos serviços, mas o manifesto é membro do workspace e o
-# --frozen-lockfile exige todos os package.json presentes (o código fica de fora).
-frontend/*
-!frontend/package.json
+# O código do frontend fica disponível no context (o build da imagem do frontend precisa dele); os
+# Dockerfiles dos serviços copiam só `frontend/package.json` (membro do workspace), então não incham.
+frontend/.next
+frontend/test-results
+frontend/playwright-report
 
 # Env locais (os serviços recebem env via docker-compose `environment:`)
 **/.env

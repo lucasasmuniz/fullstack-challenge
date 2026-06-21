@@ -239,16 +239,16 @@ services:
       - prometheus
 
   # ---------------------------------------------------------------------------
-  # Frontend (placeholder — candidate implements)
+  # Frontend (Next.js) — build a partir da raiz do monorepo (resolve @crash-game/*).
   # ---------------------------------------------------------------------------
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - kong
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - kong
 
 volumes:
   postgres_data:
