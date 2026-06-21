@@ -16,7 +16,11 @@ autenticação via **Keycloak (OIDC)** e precisão monetária em centavos inteir
 | --- | --- |
 | **Backend** (Game + Wallet, saga, provably fair, WebSocket, bônus) | ✅ completo |
 | **Infra** (`docker:up` zero-manual, CI, observabilidade) | ✅ completo |
-| **Frontend** (UI do jogo) | ⏳ próxima fase — backend verde ponta-a-ponta primeiro |
+| **Frontend** (Next.js — jogo em tempo real, apostas, auto-bet, modais) | ✅ completo |
+
+O frontend (Next.js) sobe junto no `docker:up` → **http://localhost:3000**. Stack, decisões e telas em
+[`frontend/README.md`](./frontend/README.md). Login/registro usam um **theme custom do Keycloak** (dark +
+verde) que também sobe zero-manual.
 
 ## Setup
 

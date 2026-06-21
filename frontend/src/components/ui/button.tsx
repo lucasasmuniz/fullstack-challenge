@@ -12,7 +12,7 @@ const buttonVariants = cva(
         secondary:
           "border border-line bg-elevated/40 text-fg hover:border-primary-deep hover:bg-elevated",
         ghost: "text-muted hover:text-fg hover:bg-elevated/60",
-        danger: "bg-danger text-base hover:brightness-110",
+        danger: "bg-danger text-white hover:brightness-110",
       },
       size: {
         sm: "h-9 px-3 text-[13px]",

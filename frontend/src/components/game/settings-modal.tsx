@@ -1,11 +1,12 @@
 "use client";
 
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, ShieldCheck } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Toggle } from "@/components/ui/toggle";
 import { Button } from "@/components/ui/button";
 import { usePrefsStore } from "@/stores/prefs-store";
 import { useAuthActions } from "@/hooks/use-auth-actions";
+import { useRoundHistory } from "@/hooks/use-rounds";
 import { useUiStore } from "@/stores/ui-store";
 
 type PrefKey = "soundMaster" | "soundBet" | "soundCashout" | "soundCrash" | "showFormula";
@@ -37,8 +38,11 @@ const GROUPS: ReadonlyArray<{ title: string; rows: readonly Row[] }> = [
 /** Configurações: preferências de som + UI (persistidas) e logout explícito. */
 export function SettingsModal() {
   const close = useUiStore((s) => s.close);
+  const openModal = useUiStore((s) => s.open);
   const prefs = usePrefsStore();
   const { logout } = useAuthActions();
+  const { data: history } = useRoundHistory(1);
+  const lastRound = history?.items[0];
 
   return (
     <Modal title="Configurações" icon={Settings} onClose={close} maxWidth="max-w-md">
@@ -69,6 +73,27 @@ export function SettingsModal() {
             </div>
           </div>
         ))}
+
+        <div className="flex flex-col gap-2">
+          <span className="text-xs uppercase tracking-wide text-faint">Provably Fair</span>
+          <div className="flex items-center gap-4 rounded-xl border border-line bg-surface px-4 py-3">
+            <div className="flex-1">
+              <div className="text-sm font-medium">Verificar última rodada</div>
+              <div className="text-[11.5px] text-faint">
+                {lastRound ? `Seed revelada · rodada #${lastRound.roundNumber}` : "Sem rodada concluída ainda"}
+              </div>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!lastRound}
+              onClick={() => lastRound && openModal({ type: "verify", roundId: lastRound.id })}
+            >
+              <ShieldCheck className="size-4" />
+              Verificar
+            </Button>
+          </div>
+        </div>
 
         <Button variant="danger" onClick={logout} className="mt-1 w-full">
           <LogOut className="size-4" />

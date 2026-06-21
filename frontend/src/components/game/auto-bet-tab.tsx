@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Info } from "lucide-react";
 import { Segmented } from "@/components/ui/segmented";
 import { NumberInput } from "@/components/ui/number-input";
@@ -11,7 +11,9 @@ import {
   type AutoBetConfig,
 } from "@/hooks/use-auto-bet";
 import { useWallet } from "@/hooks/use-wallet";
-import { cn, formatBRL } from "@/lib/utils";
+import { useGameStore } from "@/stores/game-store";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { cn, formatBRL, formatMultiplier } from "@/lib/utils";
 
 const STRATEGY_INFO: Record<AutoBetStrategy, string> = {
   FIXED: "Aposta sempre o mesmo valor a cada rodada, sacando no alvo definido.",
@@ -43,6 +45,18 @@ export function AutoBetTab() {
   const effStopLoss = stopLoss ?? balance;
   const effBudget = budget ?? balance;
 
+  // Ganho potencial da rodada em curso: minha aposta CONFIRMED × multiplicador atual (só em RUNNING).
+  const phase = useGameStore((s) => s.phase);
+  const liveX100 = useGameStore((s) => s.liveMultiplierX100);
+  const liveBets = useGameStore((s) => s.liveBets);
+  const { username } = useCurrentUser();
+  const potential = useMemo(() => {
+    if (phase !== "RUNNING") return null;
+    const bet = liveBets.find((b) => b.username === username && b.status === "CONFIRMED");
+    if (!bet) return null;
+    return { cents: Math.floor((bet.amountCents * liveX100) / 100), x100: liveX100 };
+  }, [phase, liveBets, username, liveX100]);
+
   const active = session?.status === "ACTIVE";
 
   if (active) {
@@ -55,6 +69,15 @@ export function AutoBetTab() {
             Auto Bet ativo · {session.strategy === "FIXED" ? "Fixo" : "Martingale"}
           </span>
         </div>
+
+        {potential !== null && (
+          <div className="flex items-center justify-between rounded-xl border border-primary-deep bg-primary/10 px-4 py-3 shadow-glow">
+            <span className="text-xs uppercase tracking-wide text-muted">Ganhando agora</span>
+            <span className="font-mono text-lg font-bold text-primary">
+              {formatBRL(potential.cents)} <span className="text-xs opacity-80">@ {formatMultiplier(potential.x100)}</span>
+            </span>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2">
           <Stat label="Resultado" value={`${profit >= 0 ? "+" : "−"}${formatBRL(Math.abs(profit))}`} cls={profit >= 0 ? "text-primary" : "text-danger"} />
@@ -152,8 +175,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Stat({ label, value, cls }: { label: string; value: string; cls?: string }) {
   return (
     <div className="rounded-xl border border-line bg-base/60 px-3 py-2.5">
-      <div className={cn("font-mono text-base font-bold", cls)}>{value}</div>
-      <div className="text-[10px] uppercase tracking-wide text-faint">{label}</div>
+      <div className={cn("font-mono text-base font-bold", cls ?? "text-fg")}>{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-muted">{label}</div>
     </div>
   );
 }

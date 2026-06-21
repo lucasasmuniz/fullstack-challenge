@@ -19,6 +19,12 @@ function parseReais(text: string): number {
   return Math.round(parseFloat(normalized) * 100);
 }
 
+/** Sanitiza a digitação: só dígitos + um separador decimal, no máximo 2 casas (centavos). */
+function limitDecimals(raw: string): string {
+  const m = raw.replace(/[^\d.,]/g, "").match(/^(\d*)([.,]?)(\d{0,2})/);
+  return m ? m[1] + m[2] + m[3] : "";
+}
+
 /**
  * Input de valor em centavos com stepper +/- e prefixo R$. Controlado (`valueCents`/`onChange`).
  * Edição livre enquanto focado; clamp em [min,max] no blur. `error` desenha a borda vermelha.
@@ -83,14 +89,14 @@ export function NumberInput({
             value={text}
             onFocus={() => (focused.current = true)}
             onChange={(e) => {
-              const cents = parseReais(e.target.value);
-              // Trava no máximo já na digitação (visual + valor), não só no blur.
+              const raw = limitDecimals(e.target.value);
+              const cents = parseReais(raw);
               if (!Number.isNaN(cents) && max != null && cents > max) {
                 onChange(max);
                 setText(formatReais(max));
                 return;
               }
-              setText(e.target.value);
+              setText(raw);
               if (!Number.isNaN(cents)) onChange(cents);
             }}
             onBlur={() => {
