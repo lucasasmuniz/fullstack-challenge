@@ -70,13 +70,13 @@ export function NumberInput({
           aria-label="Diminuir"
           disabled={disabled}
           onClick={() => bump(-step)}
-          className="grid h-full w-[42px] place-items-center border-r border-line text-muted transition-colors hover:text-fg disabled:cursor-not-allowed"
+          className="grid h-full w-9 shrink-0 place-items-center border-r border-line text-muted transition-colors hover:text-fg disabled:cursor-not-allowed"
         >
           <Minus className="size-4" />
         </button>
 
-        <div className="flex flex-1 items-center justify-center gap-1">
-          <span className="font-mono text-muted">R$</span>
+        <div className="flex min-w-0 flex-1 items-center gap-1 px-2">
+          <span className="shrink-0 font-mono text-sm text-muted">R$</span>
           <input
             inputMode="decimal"
             disabled={disabled}
@@ -96,7 +96,7 @@ export function NumberInput({
               setText(formatReais(cents));
             }}
             className={cn(
-              "w-full bg-transparent text-center font-mono text-lg font-semibold outline-none",
+              "w-full min-w-0 bg-transparent text-right font-mono text-base font-semibold outline-none",
               error ? "text-danger" : "text-fg",
             )}
           />
@@ -107,7 +107,7 @@ export function NumberInput({
           aria-label="Aumentar"
           disabled={disabled}
           onClick={() => bump(step)}
-          className="grid h-full w-[42px] place-items-center border-l border-line text-muted transition-colors hover:text-fg disabled:cursor-not-allowed"
+          className="grid h-full w-9 shrink-0 place-items-center border-l border-line text-muted transition-colors hover:text-fg disabled:cursor-not-allowed"
         >
           <Plus className="size-4" />
         </button>

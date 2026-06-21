@@ -27,7 +27,7 @@ export function BetButton(p: Props) {
   // sob o blur — sem botão de fonte escura vazando atrás do overlay.
   if (!p.isAuthenticated) {
     return (
-      <button disabled className={cn(XL, "border border-line bg-base/60 text-faint")}>
+      <button disabled className={cn(XL, "border border-line bg-elevated text-muted")}>
         <span className="text-base font-semibold">Apostar</span>
       </button>
     );
@@ -91,7 +91,7 @@ export function BetButton(p: Props) {
         className={cn(
           XL,
           p.overBalance
-            ? "border border-line bg-base/60 text-faint"
+            ? "border border-line bg-elevated text-muted"
             : "bg-primary text-base shadow-glow hover:bg-primary-glow",
         )}
       >
@@ -107,7 +107,7 @@ export function BetButton(p: Props) {
 
   const reason = p.phase === "RUNNING" ? "rodada em andamento" : "aguarde a próxima rodada";
   return (
-    <button disabled className={cn(XL, "border border-line bg-base/60 text-faint")}>
+    <button disabled className={cn(XL, "border border-line bg-elevated text-muted")}>
       <span className="text-base font-semibold">Aguarde</span>
       <span className="text-[12px]">{reason}</span>
     </button>

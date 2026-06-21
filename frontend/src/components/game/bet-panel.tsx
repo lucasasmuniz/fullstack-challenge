@@ -10,6 +10,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { NumberInput } from "@/components/ui/number-input";
 import { Chip } from "@/components/ui/chip";
 import { BetButton } from "./bet-button";
+import { AutoBetTab } from "./auto-bet-tab";
 import { AnonBetOverlay } from "./anon-bet-overlay";
 import { cn, formatBRL } from "@/lib/utils";
 
@@ -120,7 +121,7 @@ export function BetPanel() {
                     Number.isFinite(v) && v > 1 ? Math.round(v * 100) : null,
                   );
                 }}
-                className="w-16 bg-transparent font-mono text-base outline-none"
+                className="w-16 bg-transparent font-mono text-base text-fg outline-none placeholder:text-faint"
               />
               <span className="font-mono text-muted">x</span>
               <span className="ml-auto text-xs text-faint">saca automaticamente</span>
@@ -141,12 +142,7 @@ export function BetPanel() {
           />
         </>
         ) : (
-          <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <span className="text-sm text-muted">Auto Bet</span>
-            <span className="text-xs text-faint">
-              Estratégia automática (Martingale/fixo) — chega no próximo step.
-            </span>
-          </div>
+          <AutoBetTab />
         )}
       </div>
     </div>

@@ -51,7 +51,7 @@ export default function GamePage() {
     <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 md:px-6">
       {/* Duas colunas: curva ampla à esquerda (com o strip de histórico só sobre ela); à direita
           empilha Aposta (topo) + Apostas da rodada (embaixo). */}
-      <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-120px)] lg:grid-cols-[1fr_340px]">
+      <div className="grid grid-cols-1 gap-4 lg:h-[calc(100vh-120px)] lg:grid-cols-[1fr_380px]">
         <div className="order-1 flex min-h-[440px] min-w-0 flex-col gap-3 lg:h-full">
           <HistoryStrip />
           <div className="min-h-0 flex-1">
