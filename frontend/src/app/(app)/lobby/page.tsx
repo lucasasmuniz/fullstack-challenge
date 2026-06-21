@@ -47,7 +47,7 @@ export default function LobbyPage() {
               href={game.href ?? "#"}
               className="group flex aspect-[4/3] flex-col justify-between rounded-xl border border-line bg-surface p-5 transition-colors hover:border-primary-deep hover:bg-elevated"
             >
-              <span className="grid size-11 place-items-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-base group-hover:shadow-glow">
+              <span className="grid size-11 place-items-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-ink group-hover:shadow-glow">
                 <Plane className="size-6" />
               </span>
               <div>

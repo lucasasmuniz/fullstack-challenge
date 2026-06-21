@@ -15,7 +15,15 @@ function audio(): AudioContext | undefined {
   return ctx;
 }
 
-function tone(freq: number, durationMs: number, type: OscillatorType, gain = 0.08): void {
+/**
+ * Cria/retoma o AudioContext durante um gesto do usuário (exigência do browser). Sem este unlock o
+ * primeiro som — que pode ser um crash sem clique imediato — nasceria num contexto suspenso e mudo.
+ */
+export function unlockAudio(): void {
+  audio();
+}
+
+function tone(freq: number, durationMs: number, type: OscillatorType, gain = 0.16): void {
   const ac = audio();
   if (!ac) return;
   const osc = ac.createOscillator();
@@ -42,6 +50,6 @@ export function playCashout(): void {
 
 /** Crash: tom grave descendente. */
 export function playCrash(): void {
-  tone(180, 260, "sawtooth", 0.06);
-  setTimeout(() => tone(110, 320, "sawtooth", 0.06), 80);
+  tone(180, 260, "sawtooth", 0.12);
+  setTimeout(() => tone(110, 320, "sawtooth", 0.12), 80);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Info } from "lucide-react";
 import { Segmented } from "@/components/ui/segmented";
 import { NumberInput } from "@/components/ui/number-input";
@@ -12,8 +12,11 @@ import {
 } from "@/hooks/use-auto-bet";
 import { useWallet } from "@/hooks/use-wallet";
 import { useGameStore } from "@/stores/game-store";
+import { useAutoBetConfig } from "@/stores/auto-bet-config-store";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn, formatBRL, formatMultiplier } from "@/lib/utils";
+
+const MIN_CENTS = 100; // R$ 1,00
 
 const STRATEGY_INFO: Record<AutoBetStrategy, string> = {
   FIXED: "Aposta sempre o mesmo valor a cada rodada, sacando no alvo definido.",
@@ -36,14 +39,8 @@ export function AutoBetTab() {
   const { data: wallet } = useWallet();
   const balance = wallet?.balanceCents ?? 0;
 
-  const [strategy, setStrategy] = useState<AutoBetStrategy>("FIXED");
-  const [base, setBase] = useState(2_000);
-  const [targetX100, setTargetX100] = useState(200);
-  // Stop-loss e orçamento default = saldo da carteira (enquanto null, segue o saldo reativo).
-  const [stopLoss, setStopLoss] = useState<number | null>(null);
-  const [budget, setBudget] = useState<number | null>(null);
-  const effStopLoss = stopLoss ?? balance;
-  const effBudget = budget ?? balance;
+  // Config persistida (lembra os valores entre abas e sessões).
+  const cfg = useAutoBetConfig();
 
   // Ganho potencial da rodada em curso: minha aposta CONFIRMED × multiplicador atual (só em RUNNING).
   const phase = useGameStore((s) => s.phase);
@@ -63,10 +60,13 @@ export function AutoBetTab() {
     const profit = session.netResultCents;
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between rounded-xl border border-primary-deep bg-primary/[0.06] px-4 py-3">
+        <div className="flex flex-col gap-0.5 rounded-xl border border-primary-deep bg-primary/[0.06] px-4 py-3">
           <span className="flex items-center gap-2 text-sm font-medium text-primary">
             <span className="size-2 animate-[pulseDot_1.4s_infinite] rounded-full bg-primary" />
             Auto Bet ativo · {session.strategy === "FIXED" ? "Fixo" : "Martingale"}
+          </span>
+          <span className="pl-4 text-xs text-muted">
+            saca automaticamente em {formatMultiplier(session.autoCashoutTargetX100)}
           </span>
         </div>
 
@@ -93,15 +93,18 @@ export function AutoBetTab() {
     );
   }
 
+  const invalid =
+    cfg.baseCents < MIN_CENTS || cfg.stopLossCents < MIN_CENTS || cfg.budgetCents < MIN_CENTS;
+
   const submit = () => {
-    const cfg: AutoBetConfig = {
-      strategy,
-      baseAmountCents: base,
-      autoCashoutTargetX100: targetX100,
-      stopLossCents: effStopLoss,
-      budgetCents: effBudget,
+    const config: AutoBetConfig = {
+      strategy: cfg.strategy,
+      baseAmountCents: cfg.baseCents,
+      autoCashoutTargetX100: cfg.targetX100,
+      stopLossCents: cfg.stopLossCents,
+      budgetCents: cfg.budgetCents,
     };
-    start.mutate(cfg);
+    start.mutate(config);
   };
 
   return (
@@ -126,38 +129,56 @@ export function AutoBetTab() {
             { value: "FIXED", label: "Valor fixo" },
             { value: "MARTINGALE", label: "Martingale" },
           ]}
-          value={strategy}
-          onChange={setStrategy}
+          value={cfg.strategy}
+          onChange={(strategy) => cfg.set({ strategy })}
           className="w-full [&>button]:flex-1"
         />
         <div className="flex items-start gap-2 rounded-lg border border-line bg-base/60 px-3 py-2 text-[11.5px] leading-relaxed text-muted">
           <Info className="mt-0.5 size-3.5 shrink-0 text-primary" />
-          <span>{STRATEGY_INFO[strategy]}</span>
+          <span>{STRATEGY_INFO[cfg.strategy]}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Aposta base">
-          <NumberInput valueCents={base} onChange={setBase} min={100} max={Math.min(100_000, balance || 100_000)} step={500} />
+          <NumberInput
+            valueCents={cfg.baseCents}
+            onChange={(baseCents) => cfg.set({ baseCents })}
+            min={MIN_CENTS}
+            max={Math.min(100_000, balance || 100_000)}
+            step={500}
+          />
         </Field>
         <Field label="Cashout alvo">
-          <TargetInput value={targetX100} onChange={setTargetX100} />
+          <TargetInput value={cfg.targetX100} onChange={(targetX100) => cfg.set({ targetX100 })} />
         </Field>
         <Field label="Stop-loss">
-          <NumberInput valueCents={effStopLoss} onChange={setStopLoss} min={100} max={balance || undefined} step={1_000} />
+          <NumberInput
+            valueCents={cfg.stopLossCents}
+            onChange={(stopLossCents) => cfg.set({ stopLossCents })}
+            min={0}
+            max={balance || undefined}
+            step={1_000}
+          />
         </Field>
         <Field label="Orçamento">
-          <NumberInput valueCents={effBudget} onChange={setBudget} min={100} max={balance || undefined} step={1_000} />
+          <NumberInput
+            valueCents={cfg.budgetCents}
+            onChange={(budgetCents) => cfg.set({ budgetCents })}
+            min={0}
+            max={balance || undefined}
+            step={1_000}
+          />
         </Field>
       </div>
 
       <p className="rounded-lg border border-line bg-base/60 px-3 py-2.5 text-[11.5px] leading-relaxed text-muted">
-        Aposta {formatBRL(base)}, saca em {(targetX100 / 100).toFixed(2)}x. Para ao perder{" "}
-        {formatBRL(effStopLoss)} ou gastar {formatBRL(effBudget)}.
+        Aposta {formatBRL(cfg.baseCents)}, saca em {(cfg.targetX100 / 100).toFixed(2)}x. Para ao perder{" "}
+        {formatBRL(cfg.stopLossCents)} ou gastar {formatBRL(cfg.budgetCents)}.
       </p>
 
-      <Button size="lg" loading={start.isPending} onClick={submit} className="w-full">
-        Iniciar Auto Bet
+      <Button size="lg" loading={start.isPending} disabled={invalid} onClick={submit} className="w-full">
+        {invalid ? "Defina aposta, stop-loss e orçamento" : "Iniciar Auto Bet"}
       </Button>
     </div>
   );
@@ -181,13 +202,13 @@ function Stat({ label, value, cls }: { label: string; value: string; cls?: strin
   );
 }
 
-/** Input do multiplicador alvo (×100), edição livre. */
+/** Input do multiplicador alvo (×100). Controlado pela config persistida. */
 function TargetInput({ value, onChange }: { value: number; onChange: (x100: number) => void }) {
   return (
     <div className="flex h-[46px] items-center rounded-[10px] border border-line bg-base/60 px-3">
       <input
         inputMode="decimal"
-        defaultValue={(value / 100).toFixed(2)}
+        value={(value / 100).toFixed(2)}
         onChange={(e) => {
           const v = parseFloat(e.target.value.replace(",", "."));
           if (Number.isFinite(v) && v > 1) onChange(Math.round(v * 100));

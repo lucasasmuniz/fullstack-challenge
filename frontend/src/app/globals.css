@@ -6,6 +6,9 @@
  */
 @theme {
   --color-base: #0a0b0a;
+  /* `ink` = mesma cor do fundo, para TEXTO escuro sobre verde. Token dedicado porque `text-base`
+     colide com o utilitário de font-size nativo do Tailwind (1rem) → texto sairia errado nos CTAs. */
+  --color-ink: #0a0b0a;
   --color-surface: #121413;
   --color-elevated: #171a18;
   --color-line: #1e2421;
@@ -99,7 +102,10 @@ body {
 }
 @keyframes crashFlash {
   0% {
-    opacity: 0.5;
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.45;
   }
   100% {
     opacity: 0;

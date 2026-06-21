@@ -4,12 +4,12 @@ import { useEffect, useRef } from "react";
 import { useGameStore } from "@/stores/game-store";
 import { usePrefsStore } from "@/stores/prefs-store";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { playBet, playCashout, playCrash } from "@/lib/sound";
+import { playBet, playCashout, playCrash, unlockAudio } from "@/lib/sound";
 
 /**
  * Toca os efeitos sonoros nos eventos do jogo (crash global; aposta confirmada e cashout do próprio
  * jogador), respeitando as preferências (master + por evento). Detecta transições via refs — não
- * re-renderiza. O AudioContext só soa após o 1º gesto do usuário (limitação do browser).
+ * re-renderiza. O AudioContext é desbloqueado no 1º gesto do usuário (limitação do browser).
  */
 export function useGameSounds() {
   const prefs = usePrefsStore();
@@ -20,6 +20,12 @@ export function useGameSounds() {
   const prevPhase = useRef(phase);
   const confirmed = useRef<Set<string>>(new Set());
   const cashed = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const unlock = () => unlockAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, []);
 
   useEffect(() => {
     if (phase === "CRASHED" && prevPhase.current !== "CRASHED") {

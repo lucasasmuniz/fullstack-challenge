@@ -131,7 +131,7 @@ export function CrashChart() {
       {crashed && crash && (
         <span
           key={crash.serverSeed}
-          className="pointer-events-none absolute inset-0 bg-danger animate-[crashFlash_0.5s_ease-out_forwards]"
+          className="pointer-events-none absolute inset-0 bg-danger opacity-0 animate-[crashFlash_0.45s_ease-out]"
         />
       )}
 

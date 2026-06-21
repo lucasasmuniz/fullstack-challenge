@@ -50,7 +50,7 @@ export function BetButton(p: Props) {
     return (
       <button
         onClick={p.onCashout}
-        className={cn(XL, "bg-primary text-base shadow-[0_0_30px_rgba(124,252,74,.55)] hover:bg-primary-glow")}
+        className={cn(XL, "bg-primary text-ink shadow-[0_0_30px_rgba(124,252,74,.55)] hover:bg-primary-glow")}
       >
         <span className="text-[17px] font-bold">Sacar {formatBRL(p.payoutCents)}</span>
         <span className="font-mono text-[13px] opacity-85">@ {formatMultiplier(p.multiplierX100)}</span>
@@ -92,7 +92,7 @@ export function BetButton(p: Props) {
           XL,
           p.overBalance
             ? "border border-line bg-elevated text-muted"
-            : "bg-primary text-base shadow-glow hover:bg-primary-glow",
+            : "bg-primary text-ink shadow-glow hover:bg-primary-glow",
         )}
       >
         <span className="text-[17px] font-bold">

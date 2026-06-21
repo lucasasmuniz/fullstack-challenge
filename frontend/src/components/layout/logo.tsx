@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export function Logo({ className }: { className?: string }) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <span className="grid size-[30px] place-items-center rounded-[9px] bg-primary text-base shadow-glow">
+      <span className="grid size-[30px] place-items-center rounded-[9px] bg-primary text-ink shadow-glow">
         <TrendingUp className="size-[17px]" strokeWidth={3} />
       </span>
       <span className="font-display text-lg font-bold tracking-tight">

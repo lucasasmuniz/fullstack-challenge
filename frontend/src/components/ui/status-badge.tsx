@@ -41,7 +41,7 @@ const META: Record<BetStatus, StatusMeta> = {
   CASHED_OUT: {
     label: "Sacou",
     icon: TrendingUp,
-    className: "text-base border-primary bg-primary shadow-glow",
+    className: "text-ink border-primary bg-primary shadow-glow",
   },
   LOST: {
     label: "Perdeu",
