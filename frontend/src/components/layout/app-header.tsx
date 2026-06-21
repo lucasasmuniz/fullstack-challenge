@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useWallet } from "@/hooks/use-wallet";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAuthActions } from "@/hooks/use-auth-actions";
+import { useEnsureWallet } from "@/hooks/use-ensure-wallet";
 import { useUiStore } from "@/stores/ui-store";
 import { formatBRL } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ export function AppHeader() {
   const { login, register, logout } = useAuthActions();
   const { data: wallet } = useWallet(isAuthenticated);
   const openModal = useUiStore((s) => s.open);
+  useEnsureWallet();
 
   return (
     <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between gap-3 border-b border-line bg-base/80 px-4 backdrop-blur-md md:px-6">
