@@ -3,6 +3,7 @@
 import { useAuth } from "react-oidc-context";
 import { History, Plus, ArrowUpRight, Trophy, Settings } from "lucide-react";
 import { Logo } from "./logo";
+import { Avatar } from "@/components/ui/avatar";
 import { useWallet } from "@/hooks/use-wallet";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { formatBRL } from "@/lib/utils";
@@ -13,7 +14,7 @@ import { formatBRL } from "@/lib/utils";
  */
 export function AppHeader() {
   const auth = useAuth();
-  const { username, initials, isAuthenticated } = useCurrentUser();
+  const { username, isAuthenticated } = useCurrentUser();
   const { data: wallet } = useWallet(isAuthenticated);
 
   const iconBtn =
@@ -58,9 +59,9 @@ export function AppHeader() {
           onClick={() => void auth.signoutRedirect()}
           title={`Sair (${username})`}
           aria-label="Sair"
-          className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-primary-deep to-primary font-display text-[13px] font-bold text-base"
+          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
-          {initials}
+          <Avatar name={username} />
         </button>
       </div>
     </header>

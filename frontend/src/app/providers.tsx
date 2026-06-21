@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "react-oidc-context";
 import { Toaster } from "sonner";
 import { getUserManager, onSigninCallback } from "@/lib/auth";
+import { useIsClient } from "@/hooks/use-is-client";
 
 /**
  * Providers globais do client. O UserManager (OIDC) toca `window`/`localStorage`, então o
@@ -21,8 +22,7 @@ export function Providers({ children }: { children: ReactNode }) {
         },
       }),
   );
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -6,17 +6,9 @@ export interface CurrentUser {
   readonly isAuthenticated: boolean;
   readonly isLoading: boolean;
   readonly username: string;
-  readonly initials: string;
 }
 
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/[\s._-]+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-/** Username (`preferred_username` do JWT) + iniciais para o avatar. */
+/** Username (`preferred_username` do JWT) + flags de auth. As iniciais ficam no `Avatar`. */
 export function useCurrentUser(): CurrentUser {
   const auth = useAuth();
   const profile = auth.user?.profile;
@@ -29,6 +21,5 @@ export function useCurrentUser(): CurrentUser {
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading,
     username,
-    initials: username ? initialsOf(username) : "?",
   };
 }
