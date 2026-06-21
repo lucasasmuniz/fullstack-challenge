@@ -1,5 +1,7 @@
 {
   "realm": "crash-game",
+  "displayName": "JUNGLEcrash",
+  "displayNameHtml": "<span style='font-family:Space Grotesk,sans-serif;font-weight:700'>JUNGLE<span style='color:#7CFC4A'>crash</span></span>",
   "enabled": true,
   "sslRequired": "none",
   "registrationAllowed": true,

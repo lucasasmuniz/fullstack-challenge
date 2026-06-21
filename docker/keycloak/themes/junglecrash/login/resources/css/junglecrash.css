@@ -105,3 +105,48 @@ a,
   border: 1px solid rgba(255, 77, 77, 0.35) !important;
   color: var(--jc-danger) !important;
 }
+
+/* Input-group do password (PatternFly) + botão de mostrar/ocultar — sem branco. */
+.pf-c-input-group,
+[class*="input-group"] {
+  background: var(--jc-base) !important;
+  border: 1px solid var(--jc-line) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+.pf-c-input-group input,
+[class*="input-group"] input {
+  border: none !important;
+  background: transparent !important;
+}
+.pf-c-input-group button,
+.pf-c-button.pf-m-control,
+[class*="input-group"] button {
+  background: var(--jc-elevated) !important;
+  color: var(--jc-muted) !important;
+  border: none !important;
+}
+.pf-c-input-group button:hover,
+[class*="input-group"] button:hover {
+  color: var(--jc-primary) !important;
+}
+
+/* Rodapé "New user? Register" — fundo escuro, sem o branco do PatternFly. */
+#kc-info,
+#kc-info-wrapper,
+.login-pf-signup,
+.kc-registration-container,
+.kc-registration,
+.pf-c-login__main-footer,
+.pf-c-login__footer {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--jc-muted) !important;
+  border: none !important;
+}
+
+/* Header (nome do jogo) */
+#kc-header-wrapper {
+  font-size: 22px !important;
+  text-transform: none !important;
+}
