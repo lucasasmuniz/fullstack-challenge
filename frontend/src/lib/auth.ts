@@ -23,10 +23,28 @@ export function getUserManager(): UserManager {
       scope: "openid profile",
       automaticSilentRenew: true,
       userStore: new WebStorageStateStore({ store: window.localStorage }),
+      // State em sessionStorage (some ao fechar a aba) — evita acúmulo de state stale no localStorage,
+      // a causa do erro "no matching state" ao reabrir o login depois de uma sessão antiga.
+      stateStore: new WebStorageStateStore({ store: window.sessionStorage }),
     };
     manager = new UserManager(settings);
   }
   return manager;
+}
+
+/**
+ * Inicia o login limpando state stale antes — uma tentativa anterior abortada deixa entradas órfãs
+ * que fariam o callback falhar com "No matching state". Em erro, segue para o redirect mesmo assim
+ * (a stack do Keycloak resolve), nunca trava o usuário.
+ */
+export async function startSignin(args?: Parameters<UserManager["signinRedirect"]>[0]): Promise<void> {
+  const um = getUserManager();
+  try {
+    await um.clearStaleState();
+  } catch {
+    /* best-effort */
+  }
+  await um.signinRedirect(args);
 }
 
 /** Pós-callback: remove `code`/`state` da URL sem recarregar (o redirect real é feito na página). */
