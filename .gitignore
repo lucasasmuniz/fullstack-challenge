@@ -33,9 +33,5 @@ yarn-error.log*
 # Test coverage
 coverage/
 
-# Journal — material de estudo pessoal do Lucas, fora do histórico (ver docs/AI_WORKFLOW.md)
-docs/journal/
-
-docs
 # MikroORM per-db schema snapshots (gerados pelos e2e)
 **/.snapshot-*.json

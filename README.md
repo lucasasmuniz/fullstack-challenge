@@ -179,6 +179,9 @@ nunca revela o `serverSeed`/`crashPoint` antes da hora.
 
 ## Decisões de arquitetura & trade-offs
 
+> Cada decisão grande tem um ADR com o contexto e as alternativas descartadas — índice em
+> [`docs/adr/README.md`](./docs/adr/README.md). Resumo dos trade-offs abaixo.
+
 **Precisão monetária — centavos inteiros (`bigint`), nunca float.** VO `Money` imutável e
 não-negativo; `floor` no payout a favor da casa. Defesa em profundidade: invariante no agregado **e**
 `CHECK (balance_cents >= 0)` no banco.
@@ -259,4 +262,5 @@ observabilidade (OpenTelemetry + Prometheus + Grafana) · seed determinística p
 
 Projeto construído com um workflow deliberado de desenvolvimento assistido por IA (humano decide e
 revisa, agentes implementam por etapa). O raciocínio, as decisões e o log de sessões estão em
-[`docs/AI_WORKFLOW.md`](./docs/AI_WORKFLOW.md).
+[`docs/AI_WORKFLOW.md`](./docs/AI_WORKFLOW.md); o **porquê** de cada decisão arquitetural grande está
+registrado nos [Architecture Decision Records](./docs/adr/README.md) (`docs/adr/`).
