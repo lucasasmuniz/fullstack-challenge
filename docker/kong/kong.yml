@@ -1,5 +1,29 @@
 _format_version: "3.0"
 
+# CORS (global): o frontend (localhost:3000) chama o Kong (localhost:8000) cross-origin, então o
+# browser dispara preflight OPTIONS em toda request com header não-simples (Authorization,
+# Idempotency-Key). O plugin global responde o preflight e injeta os headers Access-Control-*.
+# `limit_by:ip` no rate-limiting já ignora OPTIONS. WS usa transporte websocket-only (sem preflight).
+plugins:
+  - name: cors
+    config:
+      origins:
+        - http://localhost:3000
+        - http://localhost:5173
+      methods:
+        - GET
+        - POST
+        - OPTIONS
+      headers:
+        - Authorization
+        - Content-Type
+        - Idempotency-Key
+      exposed_headers:
+        - X-RateLimit-Remaining
+        - X-RateLimit-Limit
+      credentials: false
+      max_age: 3600
+
 # Rate limiting (bônus B8): plugin `rate-limiting` com `policy: redis` apontando para o Valkey
 # (contador distribuído entre instâncias do Kong). `limit_by: ip` (o JWT é validado na app, não há
 # consumer no Kong). `fault_tolerant: true` → se o Valkey cair, falha-aberto (não derruba o jogo).
