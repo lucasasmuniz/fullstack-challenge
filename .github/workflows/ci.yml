@@ -104,3 +104,63 @@ jobs:
       - name: Dump service logs on failure
         if: failure()
         run: docker compose logs --no-color --tail=200
+
+  system:
+    name: System E2E (cross-service · Kong · SQS · crash fixo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Sobe a stack COMPLETA (games + wallets + Kong + infra) com o override determinístico
+      # (GAME_FIXED_CRASH_X100 → crash em 2,00x) — destrava o e2e cross-service ponta-a-ponta.
+      - name: Start full stack (docker:e2e)
+        run: bun run docker:e2e
+
+      - name: Wait for full stack to be healthy
+        run: |
+          set -e
+          services="postgres localstack valkey keycloak kong games wallets"
+          for i in $(seq 1 60); do
+            unhealthy=0
+            for s in $services; do
+              cid=$(docker compose -f docker-compose.yml -f docker-compose.e2e.yml ps -q "$s")
+              status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid")
+              if [ "$status" != "healthy" ]; then
+                unhealthy=1
+              fi
+            done
+            if [ "$unhealthy" -eq 0 ]; then
+              echo "Stack healthy."
+              exit 0
+            fi
+            echo "Aguardando stack... ($i/60)"
+            sleep 5
+          done
+          echo "Stack não ficou healthy a tempo:"
+          docker compose -f docker-compose.yml -f docker-compose.e2e.yml ps
+          exit 1
+
+      - name: Seed reproducible state
+        run: bun run seed:e2e
+
+      - name: System E2E tests
+        run: bun run test:system
+
+      - name: Dump service logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml logs --no-color --tail=200

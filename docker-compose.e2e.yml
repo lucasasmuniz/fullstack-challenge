@@ -1,0 +1,22 @@
+# Override para o e2e cross-service determinístico (bônus B5 + future-work #3).
+#
+# Uso: `bun run docker:e2e` (= docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d)
+# depois `bun run seed:e2e` e `bun run test:system`.
+#
+# O `environment` em formato de mapa faz **merge por chave** com o compose base — aqui só
+# sobrescrevemos/adicionamos as chaves que tornam o jogo reproduzível e rápido:
+#   - GAME_FIXED_CRASH_X100: TODA rodada crasha em 2,00x (determinístico; verify diverge — TEST-ONLY).
+#   - BETTING_WINDOW_MS folgado (5s): dá tempo do débito da aposta confirmar (SQS) ANTES do RUNNING,
+#     para o cashout poder ocorrer logo no início da rodada.
+#   - CRASH_GROWTH_RATE: ~4,6s da largada até o crash em 2,00x (janela larga e segura p/ cashout).
+#   - INTER_ROUND_DELAY curto: o e2e não arrasta entre rodadas.
+services:
+  games:
+    environment:
+      GAME_FIXED_CRASH_X100: "200"
+      CRASH_GROWTH_RATE: "0.15"
+      BETTING_WINDOW_MS: "5000"
+      INTER_ROUND_DELAY_MS: "1000"
+      SEED_CHAIN_LENGTH: "1000"
+      # Beacon off no e2e: sobe direto no fallback CSPRNG (sem dependência de rede externa).
+      BEACON_ENABLED: "false"
