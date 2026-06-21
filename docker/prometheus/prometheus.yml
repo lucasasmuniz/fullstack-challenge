@@ -1,0 +1,16 @@
+# Prometheus (B4): coleta as métricas dos serviços via o exporter OTel (porta /metrics dedicada).
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: games
+    static_configs:
+      - targets: ["games:9464"]
+        labels:
+          service: games
+  - job_name: wallets
+    static_configs:
+      - targets: ["wallets:9465"]
+        labels:
+          service: wallets

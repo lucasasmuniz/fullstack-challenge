@@ -1,4 +1,3 @@
-// Provably fair (server-only)
 export {
   ProvablyFairDomainService,
   type ProvablyFairVerification,
@@ -8,7 +7,6 @@ export {
   type ProvablyFairPolicy,
 } from "./provably-fair-policy";
 
-// Round aggregate
 export { Round, type RoundState } from "./round";
 export { RoundStatus } from "./round-status";
 export {
@@ -20,7 +18,6 @@ export {
 } from "./round-events";
 export { InvalidRoundTransitionError } from "./round-errors";
 
-// Bet aggregate
 export { Bet, type BetState } from "./bet";
 export { BetStatus } from "./bet-status";
 export { DEFAULT_BET_LIMITS, type BetLimits } from "./bet-limits";
@@ -46,3 +43,20 @@ export {
   RoundNotRunningError,
   NoBetToCashoutError,
 } from "./bet-errors";
+
+export {
+  AutoBetSession,
+  type AutoBetSessionState,
+  type AutoBetStakeDecision,
+} from "./auto-bet-session";
+export { AutoBetStatus } from "./auto-bet-status";
+export {
+  AutoBetStrategy,
+  AutoBetOutcome,
+  AutoBetCompletionReason,
+} from "./auto-bet-types";
+export {
+  AutoBetInvalidConfigError,
+  AutoBetNotActiveError,
+  AutoBetAlreadyActiveError,
+} from "./auto-bet-errors";

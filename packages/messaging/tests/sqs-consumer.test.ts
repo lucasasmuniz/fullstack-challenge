@@ -48,7 +48,6 @@ function debitEnvelope(betId: string): unknown {
 const BET = "11111111-1111-4111-8111-111111111111";
 
 async function drainOnce(consumer: SqsConsumer): Promise<void> {
-  // start dispara o loop; um receive entrega o lote, o seguinte vem vazio → paramos.
   consumer.start();
   await new Promise((r) => setTimeout(r, 20));
   await consumer.stop();
@@ -92,14 +91,14 @@ describe("SqsConsumer", () => {
     );
 
     await drainOnce(consumer);
-    expect(sqs.deleted).toEqual([]); // parse falhou → sem ack
+    expect(sqs.deleted).toEqual([]);
   });
 
   it("deleta (ack) mensagem de type sem handler nesta fila", async () => {
     const sqs = new ScriptedSqs([msg("rh-4", debitEnvelope(BET))]);
     const consumer = new SqsConsumer(
       sqs,
-      { FundsCredited: () => Promise.resolve() }, // handler de outro type
+      { FundsCredited: () => Promise.resolve() },
       { queueUrl: "q", receive: RECEIVE, idlePollDelayMs: 5 },
     );
 

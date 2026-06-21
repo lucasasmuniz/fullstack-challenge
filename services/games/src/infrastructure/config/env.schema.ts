@@ -18,12 +18,8 @@ export const gamesEnvSchema = z.object({
 
   VALKEY_URL: z.string().url(),
 
-  // Origem permitida no CORS do handshake WebSocket (Risco 4). Default '*' (dev); em prod, a
-  // URL do frontend. Lido também direto de process.env pelo decorator do gateway (estático).
   WS_CORS_ORIGIN: z.string().min(1).default("*"),
 
-  // --- Saga / mensageria (Etapa 5) ---
-  // Liga/desliga os loops de SQS (relay + consumer) nesta instância (false em testes de auth/REST).
   MESSAGING_ENABLED: z
     .union([z.boolean(), z.string()])
     .transform((v) => v === true || v === "true" || v === "1")
@@ -34,35 +30,38 @@ export const gamesEnvSchema = z.object({
   SQS_MAX_MESSAGES: z.coerce.number().int().min(1).max(10).default(10),
   SQS_VISIBILITY_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(30),
 
-  // --- Limites de aposta (centavos) — min 1,00 / max 1.000,00 (README) ---
   BET_MIN_CENTS: z.coerce.number().int().positive().default(100),
   BET_MAX_CENTS: z.coerce.number().int().positive().default(100000),
 
-  // --- Engine / curva (Etapa 4) — timings e curva configuráveis, nada hardcoded ---
   CRASH_GROWTH_RATE: z.coerce.number().positive().default(0.06),
   BETTING_WINDOW_MS: z.coerce.number().int().positive().default(8000),
   TICK_INTERVAL_MS: z.coerce.number().int().positive().default(250),
   INTER_ROUND_DELAY_MS: z.coerce.number().int().nonnegative().default(3000),
 
-  // --- Cadeia de seeds (provably fair) ---
   SEED_CHAIN_LENGTH: z.coerce.number().int().positive().default(100000),
   SEED_CHAIN_ROTATE_THRESHOLD: z.coerce.number().int().nonnegative().default(1000),
   SEED_BUFFER_SIZE: z.coerce.number().int().positive().default(50),
   SEED_BUFFER_LOW_WATERMARK: z.coerce.number().int().nonnegative().default(10),
 
-  // --- Provably fair (house edge / teto) ---
   PROVABLY_FAIR_INSTANT_BUST_DIVISOR: z.coerce.number().int().positive().default(101),
   PROVABLY_FAIR_MAX_CRASH_X100: z.coerce.number().int().positive().default(1000000),
 
-  // --- Scheduler (lease do líder) ---
+  GAME_FIXED_CRASH_X100: z.coerce.number().int().min(100).optional(),
+
+  LEADERBOARD_CACHE_TTL_MS: z.coerce.number().int().positive().default(5000),
+
+  OTEL_ENABLED: z
+    .union([z.boolean(), z.string()])
+    .transform((v) => v === true || v === "true" || v === "1")
+    .default(true),
+  METRICS_PORT: z.coerce.number().int().positive().default(9464),
+
   SCHEDULER_LEASE_TTL_MS: z.coerce.number().int().positive().default(10000),
-  // Liga/desliga o engine nesta instância (false em testes que só querem auth/REST).
   SCHEDULER_ENABLED: z
     .union([z.boolean(), z.string()])
     .transform((v) => v === true || v === "true" || v === "1")
     .default(true),
 
-  // --- Beacon de entropia pública (provably fair anti-pré-computação — ADR 0017) ---
   BEACON_ENABLED: z
     .union([z.boolean(), z.string()])
     .transform((v) => v === true || v === "true" || v === "1")

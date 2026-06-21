@@ -48,6 +48,29 @@ describe("Round", () => {
       expect(round.canCashout()).toBe(false);
     });
 
+    it("fixedCrashPointX100 (B5, TEST-ONLY) sobrepõe o crash point derivado", () => {
+      const derived = pf.deriveCrashPoint(SERVER_SEED, PUBLIC_SEED, policy);
+      const fixed = 250; // 2,50x — deve diferir do derivado para o teste ter sentido
+      expect(fixed).not.toBe(derived);
+      const round = Round.open(
+        {
+          roundId: "round-fixed",
+          roundNumber: 1,
+          serverSeed: SERVER_SEED,
+          serverSeedHash: pf.hashSeed(SERVER_SEED),
+          publicSeed: PUBLIC_SEED,
+          chainId: "11111111-1111-1111-1111-111111111111",
+          chainIndex: 0,
+          bettingEndsAt: new Date(NOW.getTime() + 10_000),
+        },
+        pf,
+        policy,
+        NOW,
+        fixed,
+      );
+      expect(round.crashPointX100).toBe(fixed);
+    });
+
     it("emite RoundOpened sem vazar serverSeed nem crashPoint", () => {
       const round = openRound();
       const events = round.pullEvents();

@@ -112,10 +112,16 @@ services:
     build:
       context: .
       dockerfile: services/games/Dockerfile
-    ports:
-      - "4001:4001"
+    # Sem `ports` publicadas no host: o serviço de aplicação só é acessível **via Kong** (8000) —
+    # auth e rate-limiting não podem ser contornados batendo direto na porta do container. `expose`
+    # é apenas documentação; na rede do compose Kong→games:4001 e Prometheus→games:9464 funcionam
+    # sem publicar no host.
+    expose:
+      - "4001"
+      - "9464" # /metrics (Prometheus scrape — B4, via rede interna)
     environment:
       PORT: 4001
+      METRICS_PORT: 9464
       DATABASE_URL: postgresql://admin:admin@postgres:5432/games
       KEYCLOAK_ISSUER: http://localhost:8080/realms/crash-game
       KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/crash-game/protocol/openid-connect/certs
@@ -163,10 +169,16 @@ services:
     build:
       context: .
       dockerfile: services/wallets/Dockerfile
-    ports:
-      - "4002:4002"
+    # Sem `ports` publicadas no host: o serviço de aplicação só é acessível **via Kong** (8000) —
+    # auth e rate-limiting não podem ser contornados batendo direto na porta do container. `expose`
+    # é apenas documentação; na rede do compose Kong→wallets:4002 e Prometheus→wallets:9465
+    # funcionam sem publicar no host.
+    expose:
+      - "4002"
+      - "9465" # /metrics (Prometheus scrape — B4, via rede interna)
     environment:
       PORT: 4002
+      METRICS_PORT: 9465
       DATABASE_URL: postgresql://admin:admin@postgres:5432/wallets
       KEYCLOAK_ISSUER: http://localhost:8080/realms/crash-game
       KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/crash-game/protocol/openid-connect/certs
@@ -194,6 +206,37 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # Prometheus (B4 — coleta as métricas /metrics dos serviços)
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - games
+      - wallets
+
+  # ---------------------------------------------------------------------------
+  # Grafana (B4 — dashboards de RTP/volume/latência; datasource + dashboard provisionados)
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.4.0
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
 
   # ---------------------------------------------------------------------------
   # Frontend (placeholder — candidate implements)

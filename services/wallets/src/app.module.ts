@@ -15,6 +15,7 @@ import { DepositHandler } from "./application/deposit.handler";
 import { WithdrawHandler } from "./application/withdraw.handler";
 import { WalletMovementService } from "./application/wallet-movement.service";
 import { WalletSagaService } from "./application/wallet-saga.service";
+import { WalletMetrics } from "./infrastructure/observability/wallet-metrics";
 import { MikroOrmOutboxStore } from "./infrastructure/messaging/mikro-orm-outbox.store";
 import { sqsClientProvider } from "./infrastructure/messaging/sqs.providers";
 import { OutboxRelayService } from "./infrastructure/messaging/outbox-relay.service";
@@ -22,8 +23,6 @@ import { WalletInboxConsumer } from "./infrastructure/messaging/wallet-inbox.con
 import { REALTIME_PUBLISHER } from "./application/realtime.port";
 import { WalletGateway } from "./infrastructure/websocket/wallet.gateway";
 
-// Carregado no import do módulo => fail-fast no bootstrap se faltar/for inválida
-// alguma env declarada (o serviço não sobe).
 const env = loadWalletsEnv();
 
 @Module({
@@ -32,7 +31,6 @@ const env = loadWalletsEnv();
     AuthModule.forRoot({
       issuer: env.KEYCLOAK_ISSUER,
       jwksUri: env.KEYCLOAK_JWKS_URI,
-      // Endurecimentos do token: liga ao cliente (azp) e exige access token (typ).
       authorizedParty: env.KEYCLOAK_CLIENT_ID,
       expectedTokenType: "Bearer",
     }),
@@ -42,18 +40,17 @@ const env = loadWalletsEnv();
     { provide: ENV, useValue: env },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: WALLET_REPOSITORY, useClass: MikroOrmWalletRepository },
+    WalletMetrics,
     WalletMovementService,
     CreateWalletHandler,
     GetWalletHandler,
     DepositHandler,
     WithdrawHandler,
-    // Saga / mensageria SQS (Etapa 5).
     WalletSagaService,
     sqsClientProvider,
     MikroOrmOutboxStore,
     OutboxRelayService,
     WalletInboxConsumer,
-    // WebSocket (Etapa 6): gateway estrito empurra balance:updated à sala privada do jogador.
     WalletGateway,
     { provide: REALTIME_PUBLISHER, useExisting: WalletGateway },
   ],

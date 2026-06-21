@@ -139,6 +139,9 @@ class FakeBetRepository implements BetRepository {
   findByPlayerAndRound(): Promise<Bet | null> {
     return Promise.resolve(null);
   }
+  findAutoCashoutCandidates(): Promise<Bet[]> {
+    return Promise.resolve([]);
+  }
 }
 
 /** Fake do repo de rodada: `findById` devolve a rodada configurada. */

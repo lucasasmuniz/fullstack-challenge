@@ -39,6 +39,12 @@ class FakeValkey implements ValkeyPort {
     this.list = [];
     return Promise.resolve();
   }
+  get(): Promise<string | null> {
+    return Promise.resolve(null);
+  }
+  setPx(): Promise<void> {
+    return Promise.resolve();
+  }
   setNxPx(): Promise<boolean> {
     return Promise.resolve(true);
   }

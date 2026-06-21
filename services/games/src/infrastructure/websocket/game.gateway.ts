@@ -20,11 +20,12 @@ import {
   setSocketUser,
 } from "@crash-game/realtime";
 import type { RealtimePublisher } from "../../application/realtime.port";
+import { GameMetrics } from "../observability/game-metrics";
 
 /**
- * Gateway WS do Game (server→client). Handshake **híbrido** (Risco 3): token ausente/ inválido →
+ * Gateway WS do Game (server→client). Handshake **híbrido**: token ausente/ inválido →
  * anônimo (só sala pública); token válido → pública + `user:{sub}`. Implementa o
- * {@link RealtimePublisher} (emissão pública). WebSocket-only + path casado com o Kong (Risco 2).
+ * {@link RealtimePublisher} (emissão pública). WebSocket-only + path casado com o Kong.
  */
 @WebSocketGateway(gatewayOptions("/games/socket.io/"))
 export class GameGateway
@@ -35,11 +36,12 @@ export class GameGateway
   @WebSocketServer()
   private server?: Server;
 
-  constructor(@Inject(JWT_VERIFIER) private readonly verifier: JwtVerifier) {}
+  constructor(
+    @Inject(JWT_VERIFIER) private readonly verifier: JwtVerifier,
+    private readonly metrics: GameMetrics,
+  ) {}
 
   afterInit(server: Server): void {
-    // Middleware de handshake: valida o token (se houver) e anexa o usuário ao socket.
-    // Híbrido → erro de verificação NÃO derruba a conexão; rebaixa para anônimo.
     server.use((socket: Socket, next: (err?: Error) => void) => {
       const token = extractHandshakeToken(socket);
       if (!token) {
@@ -53,7 +55,6 @@ export class GameGateway
           next();
         })
         .catch(() => {
-          // Token inválido/expirado: segue anônimo (o REST cuida do refresh).
           next();
         });
     });
@@ -71,7 +72,8 @@ export class GameGateway
     event: E,
     payload: RealtimeEventPayloads[E],
   ): void {
-    // Server pode não estar pronto se um evento dispara antes do afterInit — no-op seguro.
+    const start = performance.now();
     this.server?.to(PUBLIC_ROOM).emit(event, payload);
+    this.metrics.recordWsEmit(performance.now() - start);
   }
 }

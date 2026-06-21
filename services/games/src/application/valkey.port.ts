@@ -9,6 +9,11 @@ export interface ValkeyPort {
   llen(key: string): Promise<number>;
   del(key: string): Promise<void>;
 
+  /** Lê uma chave simples (cache). `null` se ausente/expirada. */
+  get(key: string): Promise<string | null>;
+  /** `SET key value PX ttlMs` (cache com expiração; sobrescreve). */
+  setPx(key: string, value: string, ttlMs: number): Promise<void>;
+
   /** `SET key value NX PX ttlMs` → `true` se adquiriu (chave não existia). */
   setNxPx(key: string, value: string, ttlMs: number): Promise<boolean>;
   /** Estende o TTL **só se** o valor for `value` (Lua atômico) → `true` se ainda é dono. */

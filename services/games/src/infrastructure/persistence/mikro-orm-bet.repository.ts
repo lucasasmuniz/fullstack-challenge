@@ -81,7 +81,6 @@ export class MikroOrmBetRepository implements BetRepository {
   ): Promise<BetMessageOutcome> {
     try {
       return await this.em.transactional(async (em) => {
-        // Inbox dedup: insert direto; conflito = reentrega → propaga p/ ser tratado fora.
         await em.insert(InboxEntity, {
           messageId,
           type: messageType,
@@ -90,13 +89,13 @@ export class MikroOrmBetRepository implements BetRepository {
 
         const row = await em.findOne(BetEntity, { id: betId });
         if (!row) {
-          return "not_found"; // inbox registrada nesta tx → ack seco
+          return "not_found";
         }
 
         const bet = toBet(row);
         const res = mutate(bet);
         if (res.isFail) {
-          return "no_op"; // estado terminal/transição inválida = redundante → ack
+          return "no_op";
         }
 
         const affected = await em.nativeUpdate(
@@ -115,9 +114,9 @@ export class MikroOrmBetRepository implements BetRepository {
       });
     } catch (err) {
       if (err instanceof UniqueConstraintViolationException) {
-        return "duplicate"; // o messageId já estava na inbox
+        return "duplicate";
       }
-      throw err; // BetConcurrencyError / falha técnica → sem ack → retry
+      throw err;
     }
   }
 
@@ -135,10 +134,13 @@ export class MikroOrmBetRepository implements BetRepository {
     });
   }
 
+  /**
+   * Liquida `CONFIRMED → LOST` em bulk no crash. Idempotente. Não bumpa `version` de propósito
+   * (load-bearing): um auto-cashout em voo no instante do crash persiste via `saveWithOutbox` com
+   * `WHERE version=N-1` e ainda casa, sobrescrevendo `LOST → CASHED_OUT` (alvo atingido antes do
+   * crash = ganho devido). Bumpar version aqui faria esse cashout legítimo perder a corrida.
+   */
   async markRoundLost(roundId: string): Promise<number> {
-    // BULK UPDATE direto (ADR 0018): liquida CONFIRMED→LOST sem hidratar agregado nem mover
-    // dinheiro. `WHERE status='CONFIRMED'` ignora naturalmente quem sacou na corrida
-    // (CASHED_OUT) — sem OCC bloodbath. Idempotente (re-settle = 0 linhas).
     return this.em.fork().nativeUpdate(
       BetEntity,
       { roundId, status: BetStatus.CONFIRMED },
@@ -157,6 +159,18 @@ export class MikroOrmBetRepository implements BetRepository {
   ): Promise<Bet | null> {
     const row = await this.em.fork().findOne(BetEntity, { playerId, roundId });
     return row ? toBet(row) : null;
+  }
+
+  async findAutoCashoutCandidates(
+    roundId: string,
+    multiplierX100: number,
+  ): Promise<Bet[]> {
+    const rows = await this.em.fork().find(BetEntity, {
+      roundId,
+      status: BetStatus.CONFIRMED,
+      autoCashoutTargetX100: { $lte: multiplierX100 },
+    });
+    return rows.map(toBet);
   }
 }
 

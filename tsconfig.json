@@ -1,9 +1,9 @@
 {
-  "//": "Raiz do monorepo. Existe para o Bun (rodado da raiz, ex: `bun test`) aplicar os mesmos compilerOptions de decorators que os serviços — sem isso o Bun usa stage-3 decorators e os @Get()/@Controller() do Nest quebram. `include: []` para não reivindicar arquivos no eslint/tsc (cada pacote tem o seu tsconfig).",
+  "//": "Raiz do monorepo. Existe para o Bun (rodado da raiz, ex: `bun test`) aplicar os mesmos compilerOptions de decorators que os serviços — sem isso o Bun usa stage-3 decorators e os @Get()/@Controller() do Nest quebram. `include` reivindica só os arquivos **root-level** (scripts de tooling + system-tests cross-service) — que não pertencem a nenhum pacote/serviço — para o type-aware do ESLint (projectService) e o tsc os enxergarem; cada pacote/serviço continua com o seu próprio tsconfig.",
   "extends": "@crash-game/typescript-config/tsconfig.json",
   "compilerOptions": {
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": []
+  "include": ["scripts/**/*.ts", "tests/**/*.ts"]
 }

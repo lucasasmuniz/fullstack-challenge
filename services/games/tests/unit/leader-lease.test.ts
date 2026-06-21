@@ -28,6 +28,12 @@ class RecordingValkey implements ValkeyPort {
   del(): Promise<void> {
     return Promise.resolve();
   }
+  get(): Promise<string | null> {
+    return Promise.resolve(null);
+  }
+  setPx(): Promise<void> {
+    return Promise.resolve();
+  }
   setNxPx(key: string, value: string, ttl: number): Promise<boolean> {
     this.lastSet = { key, value, ttl };
     return Promise.resolve(this.setResult);

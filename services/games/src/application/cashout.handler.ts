@@ -24,9 +24,10 @@ import {
 } from "./bet.repository";
 import { REALTIME_PUBLISHER, type RealtimePublisher } from "./realtime.port";
 import { betUpdatedFromBet } from "./realtime-events";
+import { GameMetrics } from "../infrastructure/observability/game-metrics";
 
 /**
- * Saque manual (server-authoritative — ADR 0014). Ordem **fail-fast**: lê o `Round` e, se
+ * Saque manual (server-authoritative). Ordem **fail-fast**: lê o `Round` e, se
  * não estiver `RUNNING`, devolve 409 **sem nem carregar a aposta** (economiza I/O na corrida
  * cashout-vs-crash). O multiplicador é derivado do **relógio do servidor** (`multiplierAt`),
  * nunca do payload; o `crashPointX100` vem do `Round` (autoridade). `Bet.cashout` rejeita
@@ -42,6 +43,7 @@ export class CashoutHandler {
     @Inject(BET_REPOSITORY) private readonly bets: BetRepository,
     @Inject(ENV) private readonly env: GamesEnv,
     @Inject(REALTIME_PUBLISHER) private readonly realtime: RealtimePublisher,
+    private readonly metrics: GameMetrics,
   ) {}
 
   async execute(playerId: string): Promise<Result<Bet, DomainError>> {
@@ -66,8 +68,6 @@ export class CashoutHandler {
       return Result.fail(res.unwrapError());
     }
 
-    // Invariante: um cashout bem-sucedido sempre define o payout (≥ a aposta). Falha aqui é
-    // regressão de domínio, não regra de negócio → throw (não um crédito de 0 mascarado).
     const payout = bet.payout;
     if (!payout) {
       throw new Error(`Payout ausente após cashout bem-sucedido (bet ${bet.id}).`);
@@ -88,16 +88,15 @@ export class CashoutHandler {
       await this.bets.saveWithOutbox(bet, outbox);
     } catch (err) {
       if (err instanceof BetConcurrencyError) {
-        // Cashout concorrente venceu a corrida → tratado como saque redundante (409).
         return Result.fail(new BetNotCashableError());
       }
       throw err;
     }
-    // WS pós-commit (Risco 5): saque confirmado (CASHED_OUT) — agregado em mãos, com username.
     this.realtime.emitToPublic(
       RealtimeEvent.BetUpdated,
       betUpdatedFromBet(bet),
     );
+    this.metrics.recordPayout(payout.toCents());
     return Result.ok(bet);
   }
 }

@@ -11,22 +11,15 @@ import {
 } from "./wallet.repository";
 import { REALTIME_PUBLISHER, type RealtimePublisher } from "./realtime.port";
 
-/** Máx. de retries para conflito de version (contenção na mesma carteira). */
 const MAX_ATTEMPTS = 4;
 
-/** O que gravar após uma tentativa: a carteira (ou `null`) + a outbox; ou `"done"` (ack seco). */
 type SagaStep = { wallet: Wallet | null; outbox: OutboxMessage } | "done";
 
 /**
- * Consome os comandos da saga (Game→Wallet) e aplica ao ledger, publicando o resultado na
- * outbox — tudo na **mesma transação** (exactly-once). Idempotência em camadas:
- * - inbox por `messageId` (reentrega da mesma mensagem → ack seco);
- * - ledger `UNIQUE(wallet_id, reason, correlation_id=betId)` (movimento já aplicado);
- * - retry sob conflito de `version` (movimento concorrente na mesma carteira) — ver
- *   {@link WalletSagaService.withVersionRetry}.
- *
- * Saldo insuficiente é regra de negócio (`Result.fail`), não exceção: vira `FundsDebitRejected`
- * (a aposta será `REJECTED`), nunca um throw que iria pra DLQ.
+ * Consome os comandos da saga (Game→Wallet) e aplica ao ledger, publicando o resultado na outbox na
+ * mesma transação (exactly-once). Idempotência em camadas: inbox por `messageId`, ledger
+ * `UNIQUE(wallet_id, reason, betId)` e retry sob conflito de `version`. Saldo insuficiente é regra de
+ * negócio (`FundsDebitRejected`), não throw para DLQ.
  */
 @Injectable()
 export class WalletSagaService {
@@ -38,9 +31,8 @@ export class WalletSagaService {
   ) {}
 
   /**
-   * Consome `CreditFunds` (cashout ou refund) e credita a carteira. Crédito não tem recusa
-   * de negócio (valor positivo) → só idempotência + concorrência. Carteira inexistente é
-   * inconsistência real → throw (DLQ p/ investigação; dinheiro devido nunca some em silêncio).
+   * Credita a carteira (cashout ou refund). Sem recusa de negócio (valor positivo): só idempotência +
+   * concorrência. Carteira inexistente é inconsistência real → throw (DLQ; dinheiro devido nunca some).
    */
   async onCreditFunds(msg: IntegrationMessage<"CreditFunds">): Promise<void> {
     const { betId, playerId, amountCents, reason } = msg.payload;
@@ -58,7 +50,7 @@ export class WalletSagaService {
       }
       const seen = await this.wallets.findProcessedMovement(wallet.id, reason, betId);
       if (seen) {
-        return { wallet: null, outbox: this.credited(msg) }; // já no ledger; só confirma
+        return { wallet: null, outbox: this.credited(msg) };
       }
       const res = wallet.credit(amount, reason, betId);
       if (res.isFail) {
@@ -78,13 +70,12 @@ export class WalletSagaService {
     await this.withVersionRetry(msg, async () => {
       const wallet = await this.wallets.findByPlayerId(playerId);
       if (!wallet) {
-        // Sem carteira: rejeita o débito (mantém a saga viva; a aposta vira REJECTED).
         this.logger.warn(`DebitFunds para carteira inexistente (player ${playerId}).`);
         return { wallet: null, outbox: this.rejected(msg, "wallet not found") };
       }
       const seen = await this.wallets.findProcessedMovement(wallet.id, "bet", betId);
       if (seen) {
-        return { wallet: null, outbox: this.debited(msg) }; // já no ledger; só confirma
+        return { wallet: null, outbox: this.debited(msg) };
       }
       const res = wallet.debit(amount, "bet", betId);
       return res.isFail
@@ -94,12 +85,9 @@ export class WalletSagaService {
   }
 
   /**
-   * Loop de retry sob conflito de `version` (contenção na mesma carteira). Roda `attempt`
-   * (load → idempotência → mutação → o que gravar), persiste via `appendSagaResult` e
-   * desambigua a `UniqueConstraintViolation`: se o `messageId` já está na inbox, foi
-   * reentrega concorrente → ack seco; senão é conflito de version → reexecuta. Esgotou → throw
-   * (sem ack → SQS retenta → DLQ). Erro não-unique no `attempt` (ex.: carteira ausente no
-   * crédito) propaga direto.
+   * Retry sob conflito de `version` (contenção na mesma carteira). Desambigua a
+   * `UniqueConstraintViolation`: `messageId` já na inbox → reentrega → ack seco; senão é conflito de
+   * version → reexecuta. Esgotou → throw (sem ack → retry/DLQ).
    */
   private async withVersionRetry(
     msg: IntegrationMessage,
@@ -115,8 +103,6 @@ export class WalletSagaService {
           messageId: msg.messageId,
           type: msg.type,
         });
-        // WS pós-commit (Risco 5): só quando o saldo mudou (wallet != null; débito recusado
-        // ou replay idempotente têm wallet=null → nada a empurrar).
         if (step.wallet) {
           this.realtime.emitBalance(step.wallet.playerId, {
             balanceCents: Number(step.wallet.balance.toCents()),
@@ -129,9 +115,8 @@ export class WalletSagaService {
           throw err;
         }
         if (await this.wallets.wasMessageProcessed(msg.messageId)) {
-          return; // conflito foi a inbox (reentrega) → ack seco
+          return;
         }
-        // senão: conflito de version → próxima iteração recarrega e reaplica
       }
     }
     throw new Error(

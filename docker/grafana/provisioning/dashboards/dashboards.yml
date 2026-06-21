@@ -1,0 +1,12 @@
+# Provider de dashboards (B4) — carrega os JSON de /var/lib/grafana/dashboards no boot.
+apiVersion: 1
+
+providers:
+  - name: crash-game
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

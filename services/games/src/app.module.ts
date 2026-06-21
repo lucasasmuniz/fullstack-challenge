@@ -8,10 +8,14 @@ import { GamesController } from "./presentation/controllers/games.controller";
 import { AuthController } from "./presentation/controllers/auth.controller";
 import { RoundsController } from "./presentation/controllers/rounds.controller";
 import { BetsController } from "./presentation/controllers/bets.controller";
+import { AutoBetController } from "./presentation/controllers/auto-bet.controller";
+import { LeaderboardController } from "./presentation/controllers/leaderboard.controller";
 import { ProvablyFairDomainService } from "./domain";
 import { ROUND_REPOSITORY } from "./application/round.repository";
 import { BET_REPOSITORY } from "./application/bet.repository";
 import { BET_QUERY_REPOSITORY } from "./application/bet-query.repository";
+import { AUTO_BET_REPOSITORY } from "./application/auto-bet.repository";
+import { LEADERBOARD_QUERY_REPOSITORY } from "./application/leaderboard-query.repository";
 import { ROUND_OPENER } from "./application/round-opener";
 import { SEED_CHAIN_REPOSITORY } from "./application/seed-chain.repository";
 import { CHAIN_GENERATOR } from "./application/chain-generator.port";
@@ -22,12 +26,18 @@ import { MikroOrmRoundOpener } from "./infrastructure/persistence/mikro-orm-roun
 import { MikroOrmSeedChainRepository } from "./infrastructure/persistence/mikro-orm-seed-chain.repository";
 import { MikroOrmBetRepository } from "./infrastructure/persistence/mikro-orm-bet.repository";
 import { MikroOrmBetQueryRepository } from "./infrastructure/persistence/mikro-orm-bet-query.repository";
+import { MikroOrmAutoBetRepository } from "./infrastructure/persistence/mikro-orm-auto-bet.repository";
+import { MikroOrmLeaderboardQueryRepository } from "./infrastructure/persistence/mikro-orm-leaderboard-query.repository";
 import { MikroOrmOutboxStore } from "./infrastructure/messaging/mikro-orm-outbox.store";
 import { sqsClientProvider } from "./infrastructure/messaging/sqs.providers";
 import { OutboxRelayService } from "./infrastructure/messaging/outbox-relay.service";
 import { GameInboxConsumer } from "./infrastructure/messaging/game-inbox.consumer";
 import { PlaceBetHandler } from "./application/place-bet.handler";
 import { CashoutHandler } from "./application/cashout.handler";
+import { AutoCashoutService } from "./application/auto-cashout.service";
+import { AutoBetService } from "./application/auto-bet.service";
+import { AutoBetRunner } from "./application/auto-bet-runner";
+import { LeaderboardService } from "./application/leaderboard.service";
 import { BetSagaService } from "./application/bet-saga.service";
 import { IoredisValkeyClient } from "./infrastructure/valkey/ioredis-valkey.client";
 import { WorkerChainGenerator } from "./infrastructure/seed/worker-chain-generator";
@@ -39,8 +49,8 @@ import { RoundScheduler } from "./application/round-scheduler";
 import { RoundQueryService } from "./application/round-query.service";
 import { REALTIME_PUBLISHER } from "./application/realtime.port";
 import { GameGateway } from "./infrastructure/websocket/game.gateway";
+import { GameMetrics } from "./infrastructure/observability/game-metrics";
 
-// Carregado no import do módulo => fail-fast no bootstrap se faltar/for inválida uma env.
 const env = loadGamesEnv();
 
 @Module({
@@ -53,37 +63,48 @@ const env = loadGamesEnv();
       expectedTokenType: "Bearer",
     }),
   ],
-  controllers: [GamesController, AuthController, RoundsController, BetsController],
+  controllers: [
+    GamesController,
+    AuthController,
+    RoundsController,
+    BetsController,
+    AutoBetController,
+    LeaderboardController,
+  ],
   providers: [
     { provide: ENV, useValue: env },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
-    // Domain service (puro, sem framework) registrado como provider.
     ProvablyFairDomainService,
-    // Ports → adapters (hexagonal).
     { provide: ROUND_REPOSITORY, useClass: MikroOrmRoundRepository },
     { provide: BET_REPOSITORY, useClass: MikroOrmBetRepository },
     { provide: BET_QUERY_REPOSITORY, useClass: MikroOrmBetQueryRepository },
+    { provide: AUTO_BET_REPOSITORY, useClass: MikroOrmAutoBetRepository },
+    {
+      provide: LEADERBOARD_QUERY_REPOSITORY,
+      useClass: MikroOrmLeaderboardQueryRepository,
+    },
     { provide: ROUND_OPENER, useClass: MikroOrmRoundOpener },
     { provide: SEED_CHAIN_REPOSITORY, useClass: MikroOrmSeedChainRepository },
     { provide: CHAIN_GENERATOR, useClass: WorkerChainGenerator },
     { provide: PUBLIC_SEED_BEACON, useClass: DrandPublicSeedBeacon },
     { provide: VALKEY, useClass: IoredisValkeyClient },
-    // Application services.
     SeedChainService,
     SeedBuffer,
     LeaderLease,
     RoundQueryService,
     PlaceBetHandler,
     CashoutHandler,
+    AutoCashoutService,
+    AutoBetService,
+    AutoBetRunner,
+    LeaderboardService,
     BetSagaService,
-    // Engine autoritativo (inicia no OnApplicationBootstrap).
     RoundScheduler,
-    // Saga / mensageria SQS (Etapa 5).
     sqsClientProvider,
     MikroOrmOutboxStore,
     OutboxRelayService,
     GameInboxConsumer,
-    // WebSocket (Etapa 6): gateway implementa o RealtimePublisher (emissão pública).
+    GameMetrics,
     GameGateway,
     { provide: REALTIME_PUBLISHER, useExisting: GameGateway },
   ],

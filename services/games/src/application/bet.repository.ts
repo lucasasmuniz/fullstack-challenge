@@ -29,10 +29,10 @@ export type OutboxBuilder = (bet: Bet) => OutboxMessage;
 
 /** Desfecho da aplicação de uma mensagem da saga a uma aposta. */
 export type BetMessageOutcome =
-  | "applied" // transição aplicada e persistida
-  | "duplicate" // messageId já processado (inbox) — ack seco
-  | "not_found" // aposta inexistente — ack seco (não trava a fila)
-  | "no_op"; // transição rejeitada pela máquina de estados (redundante) — ack seco
+  | "applied"
+  | "duplicate"
+  | "not_found"
+  | "no_op";
 
 /**
  * Port do repositório da `Bet` (state-stored) + operações transacionais da saga.
@@ -63,13 +63,23 @@ export interface BetRepository {
    */
   saveWithOutbox(bet: Bet, outbox: OutboxMessage): Promise<void>;
   /**
-   * Liquidação do crash (líder-inline, ADR 0018): **bulk UPDATE** das apostas `CONFIRMED`
+   * Liquidação do crash (líder-inline): **bulk UPDATE** das apostas `CONFIRMED`
    * da rodada para `LOST` (sem hidratar agregado, sem mover dinheiro). Idempotente
    * (re-settle = 0 linhas). Retorna quantas foram liquidadas.
    */
   markRoundLost(roundId: string): Promise<number>;
   findById(betId: string): Promise<Bet | null>;
   findByPlayerAndRound(playerId: string, roundId: string): Promise<Bet | null>;
+  /**
+   * Auto-cashout: apostas `CONFIRMED` da rodada cujo `autoCashoutTargetX100` já foi
+   * **atingido** (`<= multiplierX100`). Retorna agregados hidratados para o serviço aplicar
+   * `cashout` no alvo e persistir com fencing. Apostas sem alvo (`NULL`) são excluídas
+   * naturalmente (`NULL <= x` é falso em SQL).
+   */
+  findAutoCashoutCandidates(
+    roundId: string,
+    multiplierX100: number,
+  ): Promise<Bet[]>;
 }
 
 export const BET_REPOSITORY = Symbol("BET_REPOSITORY");

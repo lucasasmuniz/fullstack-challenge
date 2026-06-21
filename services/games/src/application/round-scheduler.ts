@@ -16,6 +16,9 @@ import {
   type RoundRepository,
 } from "./round.repository";
 import { BET_REPOSITORY, type BetRepository } from "./bet.repository";
+import { AutoCashoutService } from "./auto-cashout.service";
+import { AutoBetRunner } from "./auto-bet-runner";
+import { GameMetrics } from "../infrastructure/observability/game-metrics";
 import { ROUND_OPENER, type RoundOpener } from "./round-opener";
 import { SeedBuffer } from "./seed-buffer";
 import { SeedChainService } from "./seed-chain.service";
@@ -32,7 +35,7 @@ import {
 const MAX_OPEN_ATTEMPTS = 4;
 
 /**
- * `RoundScheduler` — loop autoritativo do jogo (ADR 0015). Apenas o **líder** (lease
+ * `RoundScheduler` — loop autoritativo do jogo. Apenas o **líder** (lease
  * Valkey) roda o ciclo `BETTING → RUNNING → CRASHED → SETTLED`. A abertura é **atômica**
  * (consumo de seed + insert da rodada, via {@link RoundOpener}). O crash é agendado
  * analiticamente, mas a transição usa o `crashPointX100` **imutável** (guardrail do drift).
@@ -58,6 +61,9 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly lease: LeaderLease,
     @Inject(ENV) private readonly env: GamesEnv,
     @Inject(REALTIME_PUBLISHER) private readonly realtime: RealtimePublisher,
+    private readonly autoCashout: AutoCashoutService,
+    private readonly autoBet: AutoBetRunner,
+    private readonly metrics: GameMetrics,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -87,8 +93,6 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
       // shutdown best-effort
     }
   }
-
-  // ---- liderança -----------------------------------------------------------
 
   private async tryAcquire(): Promise<void> {
     if (this.isLeader) {
@@ -148,12 +152,9 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
     this.clearTicks();
     this.clearRenew();
     void this.lease.release().catch(() => {
-      // releaseIfOwner é seguro; ignora falha de rede no step-down.
+      // releaseIfOwner é seguro; ignora falha de rede no step-down
     });
-    // acquireTimer segue rodando para reassumir quando o lease estiver livre.
   }
-
-  // ---- ciclo da rodada -----------------------------------------------------
 
   /** Recovery/continuação: retoma uma rodada presa (timer perdido) ou abre uma nova. */
   private async reconcile(): Promise<void> {
@@ -171,7 +172,6 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
     }
     if (current.status === RoundStatus.RUNNING) {
       if (!current.startedAt) {
-        // RUNNING sem startedAt é corrupção de dados — crasha já em vez de agendar pro futuro.
         this.logger.error(
           `Rodada #${current.roundNumber} em RUNNING sem startedAt — crash imediato.`,
         );
@@ -182,11 +182,11 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
         current.startedAt.getTime() +
         elapsedForMultiplier(current.crashPointX100, this.env.CRASH_GROWTH_RATE);
       this.logger.log(`Recovery: rodada #${current.roundNumber} em RUNNING — retomando.`);
+      this.startTicks(current.id, current.startedAt, current.crashPointX100);
       this.schedule(() => this.crashRound(current), crashAt - now.getTime());
       return;
     }
     if (current.status === RoundStatus.CRASHED) {
-      // Crashou mas não liquidou (líder morreu entre crash e settle) — resume a liquidação.
       this.logger.log(`Recovery: rodada #${current.roundNumber} CRASHED — liquidando.`);
       await this.settleRound(current);
       return;
@@ -197,12 +197,15 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
   private async openRound(): Promise<void> {
     const round = await this.acquireRound();
     if (!round) {
-      return; // acquireRound já reagendou uma nova tentativa
+      return;
     }
     this.logger.log(`Rodada #${round.roundNumber} aberta (BETTING).`);
-    // WS pós-commit (Risco 5): o opener já persistiu a rodada antes de retornar.
     this.realtime.emitToPublic(RealtimeEvent.RoundOpened, roundOpenedPayload(round));
-    // Manutenção de seeds (best-effort; não bloqueia o jogo).
+    try {
+      await this.autoBet.placeBets(round.id);
+    } catch (err) {
+      this.logger.warn(`Auto-bet placeBets falhou: ${asMessage(err)}`);
+    }
     await this.seedBuffer.refillIfLow();
     await this.seedChain.pregenerateIfNearExhaustion();
     const delay = round.bettingEndsAt.getTime() - this.now().getTime();
@@ -223,10 +226,10 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
         case "opened":
           return result.round;
         case "stale":
-          break; // re-tenta via cold
+          break;
         case "exhausted":
           await this.seedChain.rotate();
-          await this.seedBuffer.clear(); // candidatos da cadeia antiga ficam stale
+          await this.seedBuffer.clear();
           break;
         case "noChain":
           await this.seedChain.ensureActiveChain();
@@ -245,13 +248,12 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
       return;
     }
     await this.rounds.save(round);
-    // WS pós-commit (Risco 5): emite RUNNING e liga os ticks de resync.
     const startedAt = round.startedAt ?? this.now();
     this.realtime.emitToPublic(
       RealtimeEvent.RoundStarted,
       roundStartedPayload(round, startedAt, this.env.CRASH_GROWTH_RATE),
     );
-    this.startTicks(round.id, startedAt);
+    this.startTicks(round.id, startedAt, round.crashPointX100);
     const crashDelay = elapsedForMultiplier(
       round.crashPointX100,
       this.env.CRASH_GROWTH_RATE,
@@ -263,18 +265,15 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async crashRound(round: Round): Promise<void> {
-    // GUARDRAIL: usa o crashPointX100 IMUTÁVEL (do open); NÃO recomputa por Date.now()
-    // no disparo do timer (drift do event loop não pode inflar o crash → quebraria o
-    // provably fair).
-    this.clearTicks(); // para o resync antes de revelar o crash
+    this.clearTicks();
     const res = round.crash(this.now());
     if (res.isFail) {
       await this.reconcile();
       return;
     }
     await this.rounds.save(round);
-    // WS pós-commit (Risco 5): revela crashPoint/serverSeed — encerra o Dead Reckoning no cliente.
     this.realtime.emitToPublic(RealtimeEvent.RoundCrashed, roundCrashedPayload(round));
+    this.metrics.recordRound(round.crashPointX100);
     this.logger.log(
       `Rodada #${round.roundNumber} CRASHED @ ${(round.crashPointX100 / 100).toFixed(2)}x.`,
     );
@@ -282,12 +281,14 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async settleRound(round: Round): Promise<void> {
-    // Liquidação das apostas (líder-inline, ADR 0018): BULK UPDATE das CONFIRMED→LOST, sem
-    // hidratar agregado nem mover dinheiro (perder = a casa já tem o débito). Idempotente,
-    // roda antes de marcar a rodada SETTLED → o recovery (rodada CRASHED) reexecuta sem dano.
     const lost = await this.bets.markRoundLost(round.id);
     if (lost > 0) {
       this.logger.log(`Rodada #${round.roundNumber}: ${lost} aposta(s) liquidada(s) (LOST).`);
+    }
+    try {
+      await this.autoBet.reconcile(round.id);
+    } catch (err) {
+      this.logger.warn(`Auto-bet reconcile falhou: ${asMessage(err)}`);
     }
     const res = round.settle(this.now());
     if (res.isFail) {
@@ -295,30 +296,37 @@ export class RoundScheduler implements OnApplicationBootstrap, OnModuleDestroy {
       return;
     }
     await this.rounds.save(round);
-    // WS pós-commit (Risco 5): sinaliza que as não-sacadas já foram marcadas LOST.
     this.realtime.emitToPublic(RealtimeEvent.RoundSettled, roundSettledPayload(round));
     this.schedule(() => this.openRound(), this.env.INTER_ROUND_DELAY_MS);
   }
 
-  // ---- infra de timers -----------------------------------------------------
-
   /**
-   * Liga os ticks de resync (R6): a cada `TICK_INTERVAL_MS`, emite `round:tick` com o
+   * Liga os ticks de resync: a cada `TICK_INTERVAL_MS`, emite `round:tick` com o
    * **`elapsedMs` autoritativo** (tempo desde `startedAt`) + `multiplierX100` (conveniência —
-   * Dead Reckoning, Risco 1). Leader-only; parado no crash/step-down/shutdown.
+   * Dead Reckoning). Leader-only; parado no crash/step-down/shutdown.
    */
-  private startTicks(roundId: string, startedAt: Date): void {
+  private startTicks(
+    roundId: string,
+    startedAt: Date,
+    crashPointX100: number,
+  ): void {
     this.clearTicks();
     this.tickTimer = setInterval(() => {
       if (!this.isLeader) {
         return;
       }
-      const elapsedMs = this.now().getTime() - startedAt.getTime();
+      const now = this.now();
+      const elapsedMs = now.getTime() - startedAt.getTime();
       const multiplierX100 = multiplierAt(elapsedMs, this.env.CRASH_GROWTH_RATE);
       this.realtime.emitToPublic(
         RealtimeEvent.RoundTick,
         roundTickPayload(roundId, elapsedMs, multiplierX100),
       );
+      void this.autoCashout
+        .sweep(roundId, crashPointX100, multiplierX100, now)
+        .catch((err: unknown) => {
+          this.logger.warn(`Auto-cashout sweep falhou: ${asMessage(err)}`);
+        });
     }, this.env.TICK_INTERVAL_MS);
   }
 

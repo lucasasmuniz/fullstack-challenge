@@ -17,9 +17,9 @@ import {
 } from "./public-seed-beacon.port";
 
 /**
- * Gera, ativa e rotaciona a cadeia de seeds (cold storage authoritative — ADR 0013). A
- * geração (O(N) SHA-256) roda em worker thread (B1). O `publicSeed` vem de um beacon
- * externo commitado **antes** da geração e resolvido na ativação (ADR 0017); offline →
+ * Gera, ativa e rotaciona a cadeia de seeds (cold storage authoritative). A
+ * geração (O(N) SHA-256) roda em worker thread. O `publicSeed` vem de um beacon
+ * externo commitado **antes** da geração e resolvido na ativação; offline →
  * fallback CSPRNG. O **consumo** por-rodada NÃO mora aqui (é atômico no `RoundOpener`).
  */
 @Injectable()
@@ -48,7 +48,6 @@ export class SeedChainService {
       }
       return;
     }
-    // Sem cadeia ativa: garante uma pendente, resolve o publicSeed e ativa.
     let pending = await this.repo.findPendingChain();
     if (!pending) {
       await this.generateChain();
@@ -58,7 +57,7 @@ export class SeedChainService {
       throw new Error("Falha ao criar a cadeia de seeds inicial.");
     }
     await this.resolveAndSet(pending);
-    await this.repo.promoteChain(pending.id, pending.id); // ativa a primeira
+    await this.repo.promoteChain(pending.id, pending.id);
     this.logger.log(`Cadeia ${pending.id} ativada.`);
   }
 
@@ -108,8 +107,8 @@ export class SeedChainService {
     const id = randomUUID();
     const baseSeed = randomBytes(32).toString("hex");
     const length = this.env.SEED_CHAIN_LENGTH;
-    const generated = await this.generator.generate(baseSeed, length); // worker (B1)
-    const beaconRound = await this.beacon.commitFutureRound(); // commit antes de revelar
+    const generated = await this.generator.generate(baseSeed, length);
+    const beaconRound = await this.beacon.commitFutureRound();
     await this.repo.createChain({
       id,
       rootCommitment: generated.rootCommitment,

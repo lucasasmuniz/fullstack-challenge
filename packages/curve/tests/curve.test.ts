@@ -1,7 +1,10 @@
 import { describe, it, expect } from "bun:test";
 import { multiplierAt, elapsedForMultiplier } from "../src/index";
 
-const RATE = 0.1; // growth por segundo (valor de teste)
+/**
+ * growth por segundo (valor de teste)
+ */
+const RATE = 0.1;
 
 describe("curve", () => {
   describe("multiplierAt", () => {
@@ -39,7 +42,6 @@ describe("curve", () => {
     it("é a inversa de multiplierAt (round-trip, tolerância ±1)", () => {
       for (const target of [110, 150, 200, 500, 1000, 5000]) {
         const t = elapsedForMultiplier(target, RATE);
-        // floor + arredondamento de transcendental → tolera 1 unidade ×100
         expect(Math.abs(multiplierAt(t, RATE) - target)).toBeLessThanOrEqual(1);
       }
     });

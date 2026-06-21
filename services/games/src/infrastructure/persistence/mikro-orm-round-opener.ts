@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { LockMode } from "@mikro-orm/core";
 import { EntityManager } from "@mikro-orm/postgresql";
@@ -22,12 +22,13 @@ interface NextvalRow {
 }
 
 /**
- * Abertura atômica da rodada (M1): consumo da seed e insert da rodada **na mesma
+ * Abertura atômica da rodada: consumo da seed e insert da rodada **na mesma
  * transação**. A cadeia ativa é travada (`PESSIMISTIC_WRITE`) para serializar com outras
  * aberturas; o cursor só avança se a rodada for inserida com sucesso.
  */
 @Injectable()
 export class MikroOrmRoundOpener implements RoundOpener {
+  private readonly logger = new Logger(MikroOrmRoundOpener.name);
   private readonly policy: ProvablyFairPolicy;
 
   constructor(
@@ -39,6 +40,13 @@ export class MikroOrmRoundOpener implements RoundOpener {
       instantBustDivisor: BigInt(env.PROVABLY_FAIR_INSTANT_BUST_DIVISOR),
       maxCrashX100: BigInt(env.PROVABLY_FAIR_MAX_CRASH_X100),
     };
+    if (env.GAME_FIXED_CRASH_X100 !== undefined) {
+      this.logger.warn(
+        `⚠️  GAME_FIXED_CRASH_X100=${env.GAME_FIXED_CRASH_X100} — TODA rodada vai crashar ` +
+          "neste ponto fixo e o provably-fair `verify` vai divergir. Modo TEST-ONLY; " +
+          "NUNCA use em produção.",
+      );
+    }
   }
 
   async open(bufferedCandidate: ResolvedSeed | null): Promise<OpenRoundResult> {
@@ -54,7 +62,6 @@ export class MikroOrmRoundOpener implements RoundOpener {
       if (chain.cursor >= chain.length) {
         return { kind: "exhausted" };
       }
-      // Candidato do buffer só é aceito se casar exatamente com o cursor atual.
       if (
         bufferedCandidate &&
         (bufferedCandidate.chainId !== chain.id ||
@@ -88,9 +95,9 @@ export class MikroOrmRoundOpener implements RoundOpener {
         this.provablyFair,
         this.policy,
         now,
+        this.env.GAME_FIXED_CRASH_X100,
       );
 
-      // Consome a seed e insere a rodada na mesma tx (atômico).
       seedRow.consumedAt = now;
       chain.cursor = index + 1;
       const s = round.snapshot();

@@ -15,27 +15,26 @@ import {
 } from "./wallet.repository";
 import { toWalletView, type WalletView } from "./wallet.view";
 import { REALTIME_PUBLISHER, type RealtimePublisher } from "./realtime.port";
+import { WalletMetrics } from "../infrastructure/observability/wallet-metrics";
 
-/** Máx. de retries para conflito de version (contenção na mesma carteira). */
 const MAX_ATTEMPTS = 4;
 
-/** Operação de domínio aplicada à carteira (credit ou debit). */
 export type WalletOperation = (
   wallet: Wallet,
   amount: Money,
 ) => Result<void, DomainError>;
 
 /**
- * Núcleo compartilhado dos movimentos de dinheiro (deposit/withdraw). Centraliza o
- * fluxo crítico — idempotência escopada por carteira + retry sob conflito de version
- * — num único lugar, para que deposit e withdraw não divirjam em caminhos de dinheiro
- * (a operação concreta entra via `operate`). Ver chaos review W1/W10.
+ * Núcleo compartilhado de deposit/withdraw: idempotência escopada por carteira + retry sob conflito
+ * de version, num único lugar, para os dois caminhos de dinheiro não divergirem (a operação concreta
+ * entra via `operate`).
  */
 @Injectable()
 export class WalletMovementService {
   constructor(
     @Inject(WALLET_REPOSITORY) private readonly wallets: WalletRepository,
     @Inject(REALTIME_PUBLISHER) private readonly realtime: RealtimePublisher,
+    private readonly metrics: WalletMetrics,
   ) {}
 
   async apply(
@@ -51,7 +50,6 @@ export class WalletMovementService {
         return Result.fail(new WalletNotFoundError());
       }
 
-      // Idempotência por carteira: retry conhecido → valida payload + estado atual.
       const seen = await this.wallets.findProcessedMovement(
         wallet.id,
         reason,
@@ -69,7 +67,7 @@ export class WalletMovementService {
       try {
         await this.wallets.save(wallet);
         const view = toWalletView(wallet);
-        // WS pós-commit (Risco 5): empurra o novo saldo para a sala privada do jogador.
+        this.metrics.record(reason, amountCents);
         this.realtime.emitBalance(playerId, {
           balanceCents: Number(view.balanceCents),
           currency: view.currency,
@@ -79,7 +77,6 @@ export class WalletMovementService {
         if (!(error instanceof UniqueConstraintViolationException)) {
           throw error;
         }
-        // Mesma key (corrida idempotente)? valida payload e devolve estado.
         const racing = await this.wallets.findProcessedMovement(
           wallet.id,
           reason,
@@ -88,7 +85,6 @@ export class WalletMovementService {
         if (racing) {
           return this.idempotentResult(playerId, racing.amountCents, amountCents);
         }
-        // Senão foi conflito de version (op diferente): recarrega e tenta de novo.
       }
     }
 

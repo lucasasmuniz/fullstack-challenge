@@ -3,10 +3,10 @@ import type { ProvablyFairPolicy } from "./provably-fair-policy";
 
 /**
  * ProvablyFairDomainService — math pura e **determinística** do provably fair
- * (server-only, ADR 0007). Sem I/O, sem estado mutável: `node:crypto` (sha256/hmac)
+ * (server-only). Sem I/O, sem estado mutável: `node:crypto` (sha256/hmac)
  * é dependência computacional de stdlib, como `Math` — não viola a pureza do domínio.
  *
- * Esquema (ADR 0011): **hash chain reversa + public seed (híbrido tipo bustabit)**.
+ * Esquema: **hash chain reversa + public seed (híbrido tipo bustabit)**.
  * - Commitment: `sha256(serverSeed)` é publicado ANTES da rodada; o `serverSeed` só
  *   é revelado APÓS o crash (a barreira de revelação vive no agregado `Round`).
  * - Derivação: `HMAC-SHA256(key=serverSeed, msg=publicSeed)` — o `publicSeed` é um
@@ -23,7 +23,7 @@ const MIN_CRASH_X100 = 100n;
 const HASH_SLICE_HEX = 13;
 const RESOLUTION = 2n ** 52n;
 
-/** Breakdown estruturado de uma verificação — alimenta o endpoint `GET /rounds/:id/verify` (Etapa 4). */
+/** Breakdown estruturado de uma verificação — alimenta o endpoint `GET /rounds/:id/verify`. */
 export interface ProvablyFairVerification {
   /** `sha256(serverSeed) === serverSeedHash` (o commitment não foi adulterado). */
   readonly commitmentOk: boolean;
@@ -49,7 +49,7 @@ export class ProvablyFairDomainService {
    * O **consumo é reverso**: a 1ª rodada usa `S_N`, a 2ª `S_{N-1}`, … — por isso
    * `sha256(seedDaRodada)` devolve a seed da rodada **anterior** (elo verificável).
    * Não dá para "andar" a cadeia no sentido do consumo via hash (seria inverter o
-   * SHA-256 = preimage): em produção a cadeia é pré-gerada e persistida (Etapa 4).
+   * SHA-256 = preimage): em produção a cadeia é pré-gerada e persistida.
    * Aqui fica só a math, determinística e testável com `length` pequeno.
    */
   generateChain(baseSeed: string, length: number): string[] {
@@ -57,11 +57,11 @@ export class ProvablyFairDomainService {
       throw new RangeError("Chain length deve ser um inteiro >= 1");
     }
     const chain = new Array<string>(length);
-    chain[length - 1] = baseSeed; // S_N
+    chain[length - 1] = baseSeed;
     for (let i = length - 2; i >= 0; i--) {
-      chain[i] = this.hashSeed(chain[i + 1]); // S_{n-1} = sha256(S_n)
+      chain[i] = this.hashSeed(chain[i + 1]);
     }
-    return chain; // [S_0 … S_N]
+    return chain;
   }
 
   /**
@@ -85,14 +85,11 @@ export class ProvablyFairDomainService {
       .digest("hex");
     const h = BigInt(`0x${hmac.slice(0, HASH_SLICE_HEX)}`);
 
-    // House edge: crash instantâneo em 1.00x com probabilidade 1/instantBustDivisor.
     if (h % policy.instantBustDivisor === 0n) {
       return Number(MIN_CRASH_X100);
     }
 
     const raw = (100n * RESOLUTION - h) / (RESOLUTION - h);
-    // raw >= 100 sempre: h < 2^52 = RESOLUTION ⇒ (100·e − h)/(e − h) ≥ 100. Logo só o
-    // teto (maxCrashX100) pode atuar; não há piso a aplicar aqui.
     const bounded = raw > policy.maxCrashX100 ? policy.maxCrashX100 : raw;
     return Number(bounded);
   }

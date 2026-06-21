@@ -14,7 +14,7 @@ import {
  * Estado completo da rodada — toda construção passa por aqui (construtor privado), o
  * que faz o compilador **garantir** (via `strictPropertyInitialization`) que nenhum
  * campo fica sem atribuição. Evita o `!` (definite assignment) e a fresta de um campo
- * esquecido. Reusado por `open`/`reconstitute` e pela hidratação do repo (Etapa 4).
+ * esquecido. Reusado por `open`/`reconstitute` e pela hidratação do repo.
  */
 export interface RoundState {
   roundId: string;
@@ -37,9 +37,9 @@ export interface RoundState {
 /**
  * Round — agregado raiz do jogo (CQRS: o **estado** é a fonte da verdade; os domain
  * events são side-output para projeções/WebSocket/outbox). Comunica-se com `Bet` apenas
- * por referência de ID (agregados separados — ADR 0012).
+ * por referência de ID (agregados separados).
  *
- * Provably fair (ADR 0011): o `crashPointX100` é derivado **no `open()`** a partir da
+ * Provably fair: o `crashPointX100` é derivado **no `open()`** a partir da
  * seed resolvida e fica **imutável**. O `Round` não conhece a cadeia de hashes — apenas
  * consome a seed. A `serverSeed` é estritamente privada até o crash (ver `getServerSeed`).
  */
@@ -82,7 +82,7 @@ export class Round extends AggregateRoot<string> {
     return this._status;
   }
   /**
-   * Crash point (×100). **Autoridade do servidor** — o engine (Etapa 4) lê durante
+   * Crash point (×100). **Autoridade do servidor** — o engine lê durante
    * `RUNNING` para decidir o crash (`multiplier ≥ crashPoint`). A apresentação **nunca**
    * pode serializá-lo antes do crash (entregaria o resultado).
    */
@@ -119,7 +119,7 @@ export class Round extends AggregateRoot<string> {
   }
 
   /**
-   * Barreira de revelação (Garantia 1): a `serverSeed` só pode ser lida **após o crash**
+   * Barreira de revelação: a `serverSeed` só pode ser lida **após o crash**
    * (`CRASHED`/`SETTLED`). Tentar lê-la em `BETTING`/`RUNNING` é violação de segurança/
    * programação (jamais deve ocorrer em código correto) → **lança**, em vez de retornar.
    */
@@ -135,19 +135,24 @@ export class Round extends AggregateRoot<string> {
     return this._serverSeed;
   }
 
-  /** Aceita apostas? (apenas em `BETTING`). */
   canAcceptBets(): boolean {
     return this._status === RoundStatus.BETTING;
   }
-  /** Aceita cashout? (apenas em `RUNNING`). */
+
   canCashout(): boolean {
     return this._status === RoundStatus.RUNNING;
   }
 
   /**
    * Abre a rodada na fase `BETTING`, derivando o `crashPointX100` da seed resolvida
-   * (provably fair, **antes** das apostas — R8). Valida que o commitment recebido
+   * (provably fair, **antes** das apostas). Valida que o commitment recebido
    * corresponde à seed (defesa em profundidade; mismatch = erro de programação → lança).
+   *
+   * `fixedCrashPointX100`: quando fornecido, **sobrepõe** o crash point
+   * derivado da seed — usado pelo e2e cross-service para forçar um crash reproduzível.
+   * Em produção é sempre `undefined` (o opener só o passa atrás da env `GAME_FIXED_CRASH_X100`).
+   * Nesse modo o `verify` da rodada diverge de propósito (a seed deriva outro valor); a
+   * derivação provably-fair continua sendo o caminho default.
    */
   static open(
     props: {
@@ -163,6 +168,7 @@ export class Round extends AggregateRoot<string> {
     provablyFair: ProvablyFairDomainService,
     policy: ProvablyFairPolicy,
     now: Date,
+    fixedCrashPointX100?: number,
   ): Round {
     if (provablyFair.hashSeed(props.serverSeed) !== props.serverSeedHash) {
       throw new Error("serverSeedHash não corresponde à serverSeed fornecida.");
@@ -171,11 +177,13 @@ export class Round extends AggregateRoot<string> {
       roundId: props.roundId,
       roundNumber: props.roundNumber,
       status: RoundStatus.BETTING,
-      crashPointX100: provablyFair.deriveCrashPoint(
-        props.serverSeed,
-        props.publicSeed,
-        policy,
-      ),
+      crashPointX100:
+        fixedCrashPointX100 ??
+        provablyFair.deriveCrashPoint(
+          props.serverSeed,
+          props.publicSeed,
+          policy,
+        ),
       serverSeedHash: props.serverSeedHash,
       serverSeed: props.serverSeed,
       publicSeed: props.publicSeed,
@@ -200,7 +208,6 @@ export class Round extends AggregateRoot<string> {
     return round;
   }
 
-  /** `BETTING → RUNNING` (fim da janela de apostas; multiplicador começa a subir). */
   start(now: Date): Result<void, InvalidRoundTransitionError> {
     if (this._status !== RoundStatus.BETTING) {
       return Result.fail(
@@ -214,7 +221,6 @@ export class Round extends AggregateRoot<string> {
     return Result.ok(undefined);
   }
 
-  /** `RUNNING → CRASHED` — revela a `serverSeed` (passa a permitir `getServerSeed`). */
   crash(now: Date): Result<void, InvalidRoundTransitionError> {
     if (this._status !== RoundStatus.RUNNING) {
       return Result.fail(
@@ -237,7 +243,6 @@ export class Round extends AggregateRoot<string> {
     return Result.ok(undefined);
   }
 
-  /** `CRASHED → SETTLED` (liquidação concluída; apostas resolvidas). */
   settle(now: Date): Result<void, InvalidRoundTransitionError> {
     if (this._status !== RoundStatus.CRASHED) {
       return Result.fail(
@@ -251,20 +256,10 @@ export class Round extends AggregateRoot<string> {
     return Result.ok(undefined);
   }
 
-  /**
-   * Reconstrói o agregado a partir do estado persistido (read side / hidratação pelo
-   * repositório na Etapa 4). Não emite eventos.
-   */
   static reconstitute(state: RoundState): Round {
     return new Round(state);
   }
 
-  /**
-   * Snapshot completo para **persistência** (infraestrutura) — inverso de `reconstitute`.
-   * Inclui `serverSeed` (uso server-side, trusted). A **apresentação NUNCA** serializa
-   * este snapshot: para revelar a seed usa `getServerSeed()` (com guarda); para a rodada
-   * corrente os DTOs usam getters específicos que excluem `serverSeed`/`crashPointX100`.
-   */
   snapshot(): RoundState {
     return {
       roundId: this.id,

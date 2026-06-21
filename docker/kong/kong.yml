@@ -1,20 +1,54 @@
 _format_version: "3.0"
 
+# Rate limiting (bônus B8): plugin `rate-limiting` com `policy: redis` apontando para o Valkey
+# (contador distribuído entre instâncias do Kong). `limit_by: ip` (o JWT é validado na app, não há
+# consumer no Kong). `fault_tolerant: true` → se o Valkey cair, falha-aberto (não derruba o jogo).
+# Rotas de **escrita** (POST) têm teto menor que as **leituras** (polladas pelo frontend). Os tetos
+# são generosos o bastante para o gameplay normal e os testes; um burst acima deles devolve HTTP 429
+# + headers `X-RateLimit-*`. WebSocket (`/…/socket.io`) não é limitado.
 services:
   - name: games-service
     url: http://games:4001
     routes:
       # WebSocket (Etapa 6): socket.io no path `/games/socket.io/`. strip_path:false → o path
-      # chega INTACTO ao gateway (que escuta exatamente nesse path; Risco 2). Rota mais
-      # específica que `/games`, então o Kong a casa primeiro. Kong encaminha o Upgrade 101.
+      # chega INTACTO ao gateway. Rota mais específica que `/games`, casa primeiro. Sem rate limit.
       - name: games-ws
         paths:
           - /games/socket.io
         strip_path: false
+      # Escrita (apostar/sacar/auto-bet): teto mais restrito. `methods:[POST]` torna a rota mais
+      # específica que `games-routes` para POSTs (o Kong a casa primeiro); GET cai na de leitura.
+      - name: games-writes
+        paths:
+          - /games
+        methods:
+          - POST
+        strip_path: true
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 120
+              policy: redis
+              redis:
+                host: valkey
+                port: 6379
+              fault_tolerant: true
+              limit_by: ip
+      # Leitura (rodada atual/histórico/verify/leaderboard/bets): teto mais frouxo (frontend polla).
       - name: games-routes
         paths:
           - /games
         strip_path: true
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 3000
+              policy: redis
+              redis:
+                host: valkey
+                port: 6379
+              fault_tolerant: true
+              limit_by: ip
 
   - name: wallets-service
     url: http://wallets:4002
@@ -23,7 +57,33 @@ services:
         paths:
           - /wallets/socket.io
         strip_path: false
+      - name: wallets-writes
+        paths:
+          - /wallets
+        methods:
+          - POST
+        strip_path: true
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 120
+              policy: redis
+              redis:
+                host: valkey
+                port: 6379
+              fault_tolerant: true
+              limit_by: ip
       - name: wallets-routes
         paths:
           - /wallets
         strip_path: true
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 3000
+              policy: redis
+              redis:
+                host: valkey
+                port: 6379
+              fault_tolerant: true
+              limit_by: ip

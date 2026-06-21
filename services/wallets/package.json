@@ -17,6 +17,7 @@
     "@crash-game/messaging": "workspace:*",
     "@crash-game/money": "workspace:*",
     "@crash-game/nestjs-kit": "workspace:*",
+    "@crash-game/observability": "workspace:*",
     "@crash-game/persistence": "workspace:*",
     "@crash-game/realtime": "workspace:*",
     "@crash-game/realtime-contracts": "workspace:*",

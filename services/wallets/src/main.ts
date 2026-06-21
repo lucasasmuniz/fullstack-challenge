@@ -4,19 +4,30 @@ import { NestFactory } from "@nestjs/core";
 import { MikroORM } from "@mikro-orm/core";
 import { ENV } from "@crash-game/nestjs-kit";
 import { ValkeyIoAdapter } from "@crash-game/realtime";
+import { startMetrics } from "@crash-game/observability";
 import { AppModule } from "./app.module";
-import type { WalletsEnv } from "./infrastructure/config/env.schema";
+import {
+  loadWalletsEnv,
+  type WalletsEnv,
+} from "./infrastructure/config/env.schema";
 import { setupSwagger } from "./infrastructure/swagger";
 
 async function bootstrap(): Promise<void> {
+  const bootEnv = loadWalletsEnv();
+  if (bootEnv.OTEL_ENABLED) {
+    startMetrics("crash-game-wallets", bootEnv.METRICS_PORT);
+    new Logger("Bootstrap").log(
+      `Metrics on :${bootEnv.METRICS_PORT.toString()}/metrics`,
+    );
+  }
+
   const app = await NestFactory.create(AppModule);
   const env = app.get<WalletsEnv>(ENV);
 
   await app.get(MikroORM).migrator.up();
 
-  setupSwagger(app); // OpenAPI em /docs
+  setupSwagger(app);
 
-  // Adapter Valkey do socket.io (fanout do push de saldo entre instâncias).
   const wsAdapter = new ValkeyIoAdapter(app, env.VALKEY_URL);
   await wsAdapter.connect();
   app.useWebSocketAdapter(wsAdapter);

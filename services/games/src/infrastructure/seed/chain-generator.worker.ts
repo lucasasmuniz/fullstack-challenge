@@ -2,10 +2,9 @@ import { createHash } from "node:crypto";
 import { parentPort, workerData } from "node:worker_threads";
 
 /**
- * Worker CPU-bound (B1): gera a cadeia reversa de Lamport **fora do event loop** —
+ * Worker CPU-bound: gera a cadeia reversa de Lamport **fora do event loop** —
  * `length` SHA-256 síncronos travariam o loop (HTTP, renovação do lease, timers) por
- * centenas de ms no boot e na rotação. Worker threads são autorizados para trabalho
- * CPU-bound (hash) — ver `docs/study/curva-compartilhada-bun-node-next.md`.
+ * centenas de ms no boot e na rotação.
  *
  * Single-pass: devolve só `serverSeeds[]` + `rootCommitment`. Os `serverSeedHash` NÃO
  * são recomputados aqui nem no chamador — `chain[i] = sha256(chain[i+1])` significa que
@@ -28,9 +27,9 @@ function sha256Hex(value: string): string {
 
 function generate({ baseSeed, length }: ChainGenInput): ChainGenOutput {
   const serverSeeds = new Array<string>(length);
-  serverSeeds[length - 1] = baseSeed; // S_N
+  serverSeeds[length - 1] = baseSeed;
   for (let i = length - 2; i >= 0; i--) {
-    serverSeeds[i] = sha256Hex(serverSeeds[i + 1]); // S_{n-1} = sha256(S_n)
+    serverSeeds[i] = sha256Hex(serverSeeds[i + 1]);
   }
   return { serverSeeds, rootCommitment: sha256Hex(serverSeeds[0]) };
 }

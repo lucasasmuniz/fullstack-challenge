@@ -9,9 +9,6 @@ export const walletsEnvSchema = z.object({
   KEYCLOAK_JWKS_URI: z.string().url(),
   KEYCLOAK_CLIENT_ID: z.string().min(1),
 
-  // SQS agora é consumido pela Wallet (saga, Etapa 5): consumers do `wallet-inbox` +
-  // outbox → `game-inbox`. Obrigatórios. `SQS_INBOX_QUEUE_URL` = wallet-inbox (recebe
-  // DebitFunds/CreditFunds); `SQS_OUTBOUND_QUEUE_URL` = game-inbox (publica resultados).
   AWS_REGION: z.string().min(1),
   AWS_ENDPOINT: z.string().url(),
   AWS_ACCESS_KEY_ID: z.string().min(1),
@@ -19,7 +16,6 @@ export const walletsEnvSchema = z.object({
   SQS_INBOX_QUEUE_URL: z.string().url(),
   SQS_OUTBOUND_QUEUE_URL: z.string().url(),
 
-  // --- Saga / mensageria (Etapa 5) ---
   MESSAGING_ENABLED: z
     .union([z.boolean(), z.string()])
     .transform((v) => v === true || v === "true" || v === "1")
@@ -30,11 +26,15 @@ export const walletsEnvSchema = z.object({
   SQS_MAX_MESSAGES: z.coerce.number().int().min(1).max(10).default(10),
   SQS_VISIBILITY_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(30),
 
-  // Valkey: adapter do socket.io (fanout do WS de saldo entre instâncias — Etapa 6).
   VALKEY_URL: z.string().url(),
 
-  // Origem permitida no CORS do handshake WS (Risco 4). Default '*' (dev).
   WS_CORS_ORIGIN: z.string().min(1).default("*"),
+
+  OTEL_ENABLED: z
+    .union([z.boolean(), z.string()])
+    .transform((v) => v === true || v === "true" || v === "1")
+    .default(true),
+  METRICS_PORT: z.coerce.number().int().positive().default(9465),
 });
 
 export type WalletsEnv = z.infer<typeof walletsEnvSchema>;

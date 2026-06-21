@@ -57,6 +57,14 @@ export class IoredisValkeyClient implements ValkeyPort, OnModuleDestroy {
     await this.client.del(key);
   }
 
+  async get(key: string): Promise<string | null> {
+    return this.client.get(key);
+  }
+
+  async setPx(key: string, value: string, ttlMs: number): Promise<void> {
+    await this.client.set(key, value, "PX", ttlMs);
+  }
+
   async setNxPx(key: string, value: string, ttlMs: number): Promise<boolean> {
     const result = await this.client.set(key, value, "PX", ttlMs, "NX");
     return result === "OK";
@@ -74,8 +82,6 @@ export class IoredisValkeyClient implements ValkeyPort, OnModuleDestroy {
       value,
       String(ttlMs),
     );
-    // `eval` é tipado como `unknown`; normaliza (ioredis devolve number, mas blinda contra
-    // "1"/Buffer de outros clientes) para não disparar step-down espúrio.
     return Number(result) === 1;
   }
 

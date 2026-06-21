@@ -8,9 +8,9 @@ import type { ResolvedSeed } from "./seed-chain.repository";
  */
 export type OpenRoundResult =
   | { kind: "opened"; round: Round }
-  | { kind: "stale" } // candidato do buffer não bate com o cursor → tentar cold
-  | { kind: "exhausted" } // cadeia ativa esgotada → rotacionar
-  | { kind: "noChain" }; // sem cadeia ativa / publicSeed não resolvido → ensure
+  | { kind: "stale" }
+  | { kind: "exhausted" }
+  | { kind: "noChain" };
 
 /**
  * Abre a próxima rodada numa única transação: trava a cadeia ativa, deriva o crash point

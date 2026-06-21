@@ -31,6 +31,8 @@ function toHttpException(error: DomainError): HttpException {
     case "BET_NOT_PENDING":
     case "BET_NOT_CASHABLE":
     case "BET_NOT_CONFIRMED":
+    case "AUTO_BET_NOT_ACTIVE":
+    case "AUTO_BET_ALREADY_ACTIVE":
       return new ConflictException(error.message);
     case "NO_BET_TO_CASHOUT":
       return new NotFoundException(error.message);
@@ -38,6 +40,7 @@ function toHttpException(error: DomainError): HttpException {
     case "INVALID_AUTO_CASHOUT_TARGET":
     case "INVALID_CASHOUT_MULTIPLIER":
     case "CASHOUT_ABOVE_CRASH":
+    case "AUTO_BET_INVALID_CONFIG":
       return new UnprocessableEntityException(error.message);
     default:
       return new BadRequestException(error.message);

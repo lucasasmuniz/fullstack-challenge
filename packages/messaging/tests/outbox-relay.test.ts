@@ -28,7 +28,6 @@ class FakeSqs implements SqsClient {
   }
 }
 
-/** Store em memória que imita SELECT FOR UPDATE SKIP LOCKED + mark sent/failed numa "tx". */
 class FakeOutboxStore {
   rows: (OutboxRecord & { status: "pending" | "sent"; attempts: number })[] = [];
 
@@ -45,7 +44,7 @@ class FakeOutboxStore {
         await publish(row);
         row.status = "sent";
       } catch {
-        row.attempts += 1; // permanece pending (retry no próximo ciclo)
+        row.attempts += 1;
       }
     }
     return batch.length;
@@ -102,7 +101,6 @@ describe("OutboxRelay", () => {
     expect(store.rows[0].status).toBe("pending");
     expect(store.rows[0].attempts).toBe(1);
 
-    // próximo ciclo: SQS volta → publica e marca sent.
     await relay.drainOnce();
     expect(store.rows[0].status).toBe("sent");
     expect(sqs.sent).toHaveLength(1);
