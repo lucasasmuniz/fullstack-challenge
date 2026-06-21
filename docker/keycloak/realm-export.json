@@ -7,7 +7,7 @@
   "registrationAllowed": true,
   "loginTheme": "junglecrash",
   "internationalizationEnabled": true,
-  "supportedLocales": ["pt-BR", "en"],
+  "supportedLocales": ["pt-BR"],
   "defaultLocale": "pt-BR",
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,

@@ -23,14 +23,43 @@ body,
   font-family: "Inter", system-ui, sans-serif !important;
 }
 
-/* Card central */
+/* Card central — borda só no contorno externo. */
 .card-pf,
-#kc-content,
 .login-pf-page .card-pf {
   background: var(--jc-base) !important;
   border: 1px solid var(--jc-line) !important;
   border-radius: 14px !important;
   box-shadow: none !important;
+}
+
+/* Containers internos e grupos de campo: sem box (borda/fundo) — combatem as molduras feias. */
+#kc-content,
+#kc-content-wrapper,
+#kc-form,
+#kc-form-wrapper,
+.pf-c-form,
+.pf-c-form__group,
+.form-group,
+.pf-c-form__group-control {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Seletor de idioma escondido: só pt-BR (o locale segue ativo, sem a opção de troca). */
+#kc-locale,
+#kc-locale-wrapper,
+.pf-c-dropdown.pf-m-expanded,
+#kc-locale-dropdown {
+  display: none !important;
+}
+
+/* Asterisco de campo obrigatório: branco, combinando com os labels. */
+.required,
+.pf-c-form__label-required,
+.pf-c-form__group-label-required,
+label .required {
+  color: var(--jc-fg) !important;
 }
 
 #kc-header,
