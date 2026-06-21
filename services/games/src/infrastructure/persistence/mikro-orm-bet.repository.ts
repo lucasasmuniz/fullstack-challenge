@@ -120,6 +120,11 @@ export class MikroOrmBetRepository implements BetRepository {
     }
   }
 
+  /**
+   * Persiste um cashout (manual/auto) com fence só por `version`, de propósito. NÃO adicionar
+   * `status` ao WHERE: na corrida com `markRoundLost` (que não bumpa version), este UPDATE precisa
+   * sobrescrever `LOST → CASHED_OUT` quando o alvo foi atingido antes do crash (ganho devido).
+   */
   async saveWithOutbox(bet: Bet, outbox: OutboxMessage): Promise<void> {
     await this.em.transactional(async (em) => {
       const affected = await em.nativeUpdate(
