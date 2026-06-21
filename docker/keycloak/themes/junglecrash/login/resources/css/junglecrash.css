@@ -1,0 +1,107 @@
+/* JUNGLEcrash — override dark + verde neon sobre o theme base do Keycloak. */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  --jc-base: #0a0b0a;
+  --jc-surface: #121413;
+  --jc-elevated: #171a18;
+  --jc-line: #1e2421;
+  --jc-primary: #7cfc4a;
+  --jc-primary-glow: #95ff6b;
+  --jc-fg: #f4f7f4;
+  --jc-muted: #9aa39b;
+  --jc-danger: #ff4d4d;
+}
+
+html,
+body,
+.login-pf,
+.login-pf body {
+  background: var(--jc-base) !important;
+  color: var(--jc-fg) !important;
+  font-family: "Inter", system-ui, sans-serif !important;
+}
+
+/* Card central */
+.card-pf,
+#kc-content,
+.login-pf-page .card-pf {
+  background: var(--jc-surface) !important;
+  border: 1px solid var(--jc-line) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
+}
+
+#kc-header,
+#kc-header-wrapper {
+  color: var(--jc-fg) !important;
+  font-family: "Space Grotesk", sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+
+h1,
+h2,
+h3,
+#kc-page-title {
+  color: var(--jc-fg) !important;
+  font-family: "Space Grotesk", sans-serif !important;
+}
+
+label,
+.control-label,
+#kc-form-options,
+.login-pf-settings {
+  color: var(--jc-muted) !important;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+.form-control,
+.pf-c-form-control {
+  background: var(--jc-base) !important;
+  border: 1px solid var(--jc-line) !important;
+  border-radius: 10px !important;
+  color: var(--jc-fg) !important;
+  height: 44px !important;
+}
+input:focus,
+.form-control:focus {
+  border-color: var(--jc-primary) !important;
+  box-shadow: 0 0 0 3px rgba(124, 252, 74, 0.12) !important;
+}
+
+/* Botão primário (Entrar / Registrar) */
+.btn-primary,
+input[type="submit"],
+.pf-c-button.pf-m-primary {
+  background: var(--jc-primary) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  color: var(--jc-base) !important;
+  font-family: "Space Grotesk", sans-serif !important;
+  font-weight: 600 !important;
+  height: 46px !important;
+  box-shadow: 0 0 18px rgba(124, 252, 74, 0.35) !important;
+}
+.btn-primary:hover,
+input[type="submit"]:hover {
+  background: var(--jc-primary-glow) !important;
+}
+
+/* Links (criar conta, esqueci a senha) */
+a,
+#kc-registration a,
+#kc-info-message a {
+  color: var(--jc-primary) !important;
+}
+
+/* Alertas de erro */
+.alert-error,
+.pf-c-alert.pf-m-danger {
+  background: rgba(255, 77, 77, 0.1) !important;
+  border: 1px solid rgba(255, 77, 77, 0.35) !important;
+  color: var(--jc-danger) !important;
+}

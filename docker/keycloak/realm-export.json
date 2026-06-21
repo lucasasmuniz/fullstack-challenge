@@ -3,6 +3,7 @@
   "enabled": true,
   "sslRequired": "none",
   "registrationAllowed": true,
+  "loginTheme": "junglecrash",
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "accessTokenLifespan": 3600,
