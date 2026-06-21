@@ -14,6 +14,7 @@ import {
   type WalletRepository,
 } from "./wallet.repository";
 import { toWalletView, type WalletView } from "./wallet.view";
+import { REALTIME_PUBLISHER, type RealtimePublisher } from "./realtime.port";
 
 /** Máx. de retries para conflito de version (contenção na mesma carteira). */
 const MAX_ATTEMPTS = 4;
@@ -34,6 +35,7 @@ export type WalletOperation = (
 export class WalletMovementService {
   constructor(
     @Inject(WALLET_REPOSITORY) private readonly wallets: WalletRepository,
+    @Inject(REALTIME_PUBLISHER) private readonly realtime: RealtimePublisher,
   ) {}
 
   async apply(
@@ -66,7 +68,13 @@ export class WalletMovementService {
 
       try {
         await this.wallets.save(wallet);
-        return Result.ok(toWalletView(wallet));
+        const view = toWalletView(wallet);
+        // WS pós-commit (Risco 5): empurra o novo saldo para a sala privada do jogador.
+        this.realtime.emitBalance(playerId, {
+          balanceCents: Number(view.balanceCents),
+          currency: view.currency,
+        });
+        return Result.ok(view);
       } catch (error) {
         if (!(error instanceof UniqueConstraintViolationException)) {
           throw error;

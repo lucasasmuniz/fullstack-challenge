@@ -19,6 +19,8 @@ import { MikroOrmOutboxStore } from "./infrastructure/messaging/mikro-orm-outbox
 import { sqsClientProvider } from "./infrastructure/messaging/sqs.providers";
 import { OutboxRelayService } from "./infrastructure/messaging/outbox-relay.service";
 import { WalletInboxConsumer } from "./infrastructure/messaging/wallet-inbox.consumer";
+import { REALTIME_PUBLISHER } from "./application/realtime.port";
+import { WalletGateway } from "./infrastructure/websocket/wallet.gateway";
 
 // Carregado no import do módulo => fail-fast no bootstrap se faltar/for inválida
 // alguma env declarada (o serviço não sobe).
@@ -51,6 +53,9 @@ const env = loadWalletsEnv();
     MikroOrmOutboxStore,
     OutboxRelayService,
     WalletInboxConsumer,
+    // WebSocket (Etapa 6): gateway estrito empurra balance:updated à sala privada do jogador.
+    WalletGateway,
+    { provide: REALTIME_PUBLISHER, useExisting: WalletGateway },
   ],
   exports: [ENV],
 })

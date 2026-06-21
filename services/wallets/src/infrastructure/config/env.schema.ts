@@ -30,8 +30,11 @@ export const walletsEnvSchema = z.object({
   SQS_MAX_MESSAGES: z.coerce.number().int().min(1).max(10).default(10),
   SQS_VISIBILITY_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(30),
 
-  // Valkey não é usado pela Wallet (sem cache/lease aqui).
-  VALKEY_URL: z.string().url().optional(),
+  // Valkey: adapter do socket.io (fanout do WS de saldo entre instâncias — Etapa 6).
+  VALKEY_URL: z.string().url(),
+
+  // Origem permitida no CORS do handshake WS (Risco 4). Default '*' (dev).
+  WS_CORS_ORIGIN: z.string().min(1).default("*"),
 });
 
 export type WalletsEnv = z.infer<typeof walletsEnvSchema>;

@@ -9,6 +9,7 @@ import {
   type OutboxMessage,
   type WalletRepository,
 } from "./wallet.repository";
+import { REALTIME_PUBLISHER, type RealtimePublisher } from "./realtime.port";
 
 /** Máx. de retries para conflito de version (contenção na mesma carteira). */
 const MAX_ATTEMPTS = 4;
@@ -33,6 +34,7 @@ export class WalletSagaService {
 
   constructor(
     @Inject(WALLET_REPOSITORY) private readonly wallets: WalletRepository,
+    @Inject(REALTIME_PUBLISHER) private readonly realtime: RealtimePublisher,
   ) {}
 
   /**
@@ -113,6 +115,14 @@ export class WalletSagaService {
           messageId: msg.messageId,
           type: msg.type,
         });
+        // WS pós-commit (Risco 5): só quando o saldo mudou (wallet != null; débito recusado
+        // ou replay idempotente têm wallet=null → nada a empurrar).
+        if (step.wallet) {
+          this.realtime.emitBalance(step.wallet.playerId, {
+            balanceCents: Number(step.wallet.balance.toCents()),
+            currency: step.wallet.currency,
+          });
+        }
         return;
       } catch (err) {
         if (!(err instanceof UniqueConstraintViolationException)) {
@@ -151,6 +161,7 @@ export class WalletSagaService {
       type: IntegrationEventType.FundsDebitRejected,
       payload: {
         betId: msg.payload.betId,
+        roundId: msg.payload.roundId,
         playerId: msg.payload.playerId,
         amountCents: msg.payload.amountCents,
         reason,
