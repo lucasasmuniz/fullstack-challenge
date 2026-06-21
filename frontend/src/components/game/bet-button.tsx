@@ -16,8 +16,6 @@ interface Props {
   pending: boolean;
   onPlace: () => void;
   onCashout: () => void;
-  onLogin: () => void;
-  onRegister: () => void;
 }
 
 const XL =
@@ -25,19 +23,13 @@ const XL =
 
 /** BetButton XL: o estado deriva de auth + fase + status da aposta (server-authoritative). */
 export function BetButton(p: Props) {
+  // Anônimo: o CTA real fica no AnonBetOverlay (que cobre o painel). Aqui só um placeholder neutro
+  // sob o blur — sem botão de fonte escura vazando atrás do overlay.
   if (!p.isAuthenticated) {
     return (
-      <div className="flex flex-col gap-2">
-        <button onClick={p.onLogin} className={cn(XL, "bg-primary text-base shadow-glow hover:bg-primary-glow")}>
-          <span className="text-[17px] font-bold">Entrar para apostar</span>
-        </button>
-        <button
-          onClick={p.onRegister}
-          className="text-center text-xs text-muted underline-offset-4 hover:text-fg hover:underline"
-        >
-          Não tem conta? Criar conta
-        </button>
-      </div>
+      <button disabled className={cn(XL, "border border-line bg-base/60 text-faint")}>
+        <span className="text-base font-semibold">Apostar</span>
+      </button>
     );
   }
 

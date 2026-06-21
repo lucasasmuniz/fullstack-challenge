@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import { useGameStore, type LiveBet } from "@/stores/game-store";
 import { useWallet } from "@/hooks/use-wallet";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { useAuthActions } from "@/hooks/use-auth-actions";
 import { useBetActions } from "@/hooks/use-bet-actions";
 import type { BetStatus } from "@/components/ui/status-badge";
 import { Segmented } from "@/components/ui/segmented";
 import { NumberInput } from "@/components/ui/number-input";
 import { Chip } from "@/components/ui/chip";
 import { BetButton } from "./bet-button";
-import { formatBRL } from "@/lib/utils";
+import { AnonBetOverlay } from "./anon-bet-overlay";
+import { cn, formatBRL } from "@/lib/utils";
 
 const MIN_BET = 100;
 const MAX_BET = 100_000;
@@ -32,7 +32,6 @@ export function BetPanel() {
   const liveBets = useGameStore((s) => s.liveBets);
 
   const { isAuthenticated } = useCurrentUser();
-  const { login, register } = useAuthActions();
   const { data: wallet } = useWallet(isAuthenticated);
   const { place, cashout, pending } = useBetActions();
 
@@ -55,18 +54,26 @@ export function BetPanel() {
   };
 
   return (
-    <div className="flex shrink-0 flex-col gap-4 rounded-xl border border-line bg-surface p-4">
-      <Segmented
-        options={[
-          { value: "manual", label: "Aposta Manual" },
-          { value: "auto", label: "Auto Bet" },
-        ]}
-        value={tab}
-        onChange={setTab}
-        className="w-full [&>button]:flex-1"
-      />
+    <div className="relative shrink-0 rounded-xl border border-line bg-surface p-4">
+      {!isAuthenticated && <AnonBetOverlay />}
+      <div
+        aria-hidden={!isAuthenticated}
+        className={cn(
+          "flex flex-col gap-4",
+          !isAuthenticated && "pointer-events-none select-none blur-lg",
+        )}
+      >
+        <Segmented
+          options={[
+            { value: "manual", label: "Aposta Manual" },
+            { value: "auto", label: "Auto Bet" },
+          ]}
+          value={tab}
+          onChange={setTab}
+          className="w-full [&>button]:flex-1"
+        />
 
-      {tab === "manual" ? (
+        {tab === "manual" ? (
         <>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted">Valor da aposta</span>
@@ -131,18 +138,17 @@ export function BetPanel() {
             pending={pending}
             onPlace={onPlace}
             onCashout={cashout}
-            onLogin={login}
-            onRegister={register}
           />
         </>
-      ) : (
-        <div className="flex flex-col items-center gap-2 py-10 text-center">
-          <span className="text-sm text-muted">Auto Bet</span>
-          <span className="text-xs text-faint">
-            Estratégia automática (Martingale/fixo) — chega no próximo step.
-          </span>
-        </div>
-      )}
+        ) : (
+          <div className="flex flex-col items-center gap-2 py-10 text-center">
+            <span className="text-sm text-muted">Auto Bet</span>
+            <span className="text-xs text-faint">
+              Estratégia automática (Martingale/fixo) — chega no próximo step.
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
