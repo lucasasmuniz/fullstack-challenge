@@ -9,6 +9,9 @@ COPY package.json bun.lock ./
 COPY packages ./packages
 COPY services/games/package.json ./services/games/package.json
 COPY services/wallets/package.json ./services/wallets/package.json
+# frontend é membro do workspace (compartilha curve/realtime-contracts); só o manifesto basta
+# para o --frozen-lockfile (não copiamos o código do frontend para a imagem do serviço).
+COPY frontend/package.json ./frontend/package.json
 
 # Instala o workspace inteiro (cria os symlinks de @crash-game/* em node_modules).
 RUN bun install --frozen-lockfile

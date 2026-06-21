@@ -47,6 +47,14 @@ jobs:
       - name: Unit tests
         run: bun run test
 
+      # O frontend tem sua própria toolchain (Next/ESLint), fora do typed-linting da raiz.
+      - name: Frontend lint · typecheck · build
+        working-directory: frontend
+        run: |
+          bun run lint
+          bun run typecheck
+          bun run build
+
   e2e:
     name: E2E (Postgres · SQS · Valkey · Keycloak)
     runs-on: ubuntu-latest
