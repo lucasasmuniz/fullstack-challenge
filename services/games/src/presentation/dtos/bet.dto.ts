@@ -43,6 +43,7 @@ export function toCashedOutBetDto(bet: Bet): CashedOutBetDto {
 export interface BetHistoryDto {
   readonly id: string;
   readonly roundId: string;
+  readonly username: string;
   readonly amountCents: number;
   readonly status: string;
   readonly autoCashoutTargetX100: number | null;
@@ -56,6 +57,7 @@ export function toBetHistoryDto(view: BetView): BetHistoryDto {
   return {
     id: view.id,
     roundId: view.roundId,
+    username: view.username,
     amountCents: Number(view.amountCents),
     status: view.status,
     autoCashoutTargetX100: view.autoCashoutTargetX100,

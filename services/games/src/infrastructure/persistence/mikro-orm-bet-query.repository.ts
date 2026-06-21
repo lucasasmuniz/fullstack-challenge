@@ -35,6 +35,7 @@ function toBetView(e: BetEntity): BetView {
   return {
     id: e.id,
     roundId: e.roundId,
+    username: e.username,
     amountCents: e.amountCents,
     status: toBetStatus(e.status),
     autoCashoutTargetX100: e.autoCashoutTargetX100,

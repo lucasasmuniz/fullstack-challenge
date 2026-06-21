@@ -12,6 +12,7 @@ import { InboxEntity } from "../persistence/inbox.entity";
 import { Migration20260619000100 } from "../../migrations/Migration20260619000100";
 import { Migration20260619000200 } from "../../migrations/Migration20260619000200";
 import { Migration20260620000100 } from "../../migrations/Migration20260620000100";
+import { Migration20260620000200 } from "../../migrations/Migration20260620000200";
 
 /**
  * Config MikroORM do Game Service: estado da rodada (`round`) + cold storage da cadeia de
@@ -38,6 +39,7 @@ export function createOrmConfig(databaseUrl: string): Options {
         { name: "Migration20260619000100", class: Migration20260619000100 },
         { name: "Migration20260619000200", class: Migration20260619000200 },
         { name: "Migration20260620000100", class: Migration20260620000100 },
+        { name: "Migration20260620000200", class: Migration20260620000200 },
       ],
     },
   });

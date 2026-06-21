@@ -32,6 +32,7 @@ export interface BetState {
   betId: string;
   roundId: string;
   playerId: string;
+  username: string;
   amount: Money;
   status: BetStatus;
   autoCashoutTargetX100: number | null;
@@ -55,6 +56,7 @@ export interface BetState {
 export class Bet extends AggregateRoot<string> {
   private _roundId: string;
   private _playerId: string;
+  private _username: string;
   private _amount: Money;
   private _status: BetStatus;
   private _autoCashoutTargetX100: number | null;
@@ -69,6 +71,7 @@ export class Bet extends AggregateRoot<string> {
     super(state.betId);
     this._roundId = state.roundId;
     this._playerId = state.playerId;
+    this._username = state.username;
     this._amount = state.amount;
     this._status = state.status;
     this._autoCashoutTargetX100 = state.autoCashoutTargetX100;
@@ -85,6 +88,9 @@ export class Bet extends AggregateRoot<string> {
   }
   get playerId(): string {
     return this._playerId;
+  }
+  get username(): string {
+    return this._username;
   }
   get amount(): Money {
     return this._amount;
@@ -125,6 +131,7 @@ export class Bet extends AggregateRoot<string> {
       betId: string;
       roundId: string;
       playerId: string;
+      username: string;
       amount: Money;
       autoCashoutTargetX100?: number | null;
     },
@@ -149,6 +156,7 @@ export class Bet extends AggregateRoot<string> {
       betId: props.betId,
       roundId: props.roundId,
       playerId: props.playerId,
+      username: props.username,
       amount: props.amount,
       status: BetStatus.PENDING_FUNDS,
       autoCashoutTargetX100: target,

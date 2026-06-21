@@ -7,6 +7,7 @@ import type { BetStatus } from "../domain";
 export interface BetView {
   readonly id: string;
   readonly roundId: string;
+  readonly username: string;
   readonly amountCents: bigint;
   readonly status: BetStatus;
   readonly autoCashoutTargetX100: number | null;

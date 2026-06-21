@@ -28,6 +28,10 @@ export class BetEntity {
   @Property({ type: "uuid" })
   playerId!: string;
 
+  /** Username do jogador (do JWT no place) — para a lista de apostas em tempo real (Etapa 6). */
+  @Property({ type: "string" })
+  username!: string;
+
   @Property({ type: new BigIntType("bigint") })
   amountCents!: bigint;
 
