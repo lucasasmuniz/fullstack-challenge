@@ -7,6 +7,13 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
 import { CurrentUser, type AuthenticatedUser } from "@crash-game/nestjs-kit";
 import { PlaceBetHandler } from "../../application/place-bet.handler";
 import { CashoutHandler } from "../../application/cashout.handler";
@@ -31,6 +38,8 @@ import { parsePagination } from "../http/pagination";
  * global); o `player_id` vem **sempre** do `sub` do JWT, nunca do body. O débito acontece
  * via saga (SQS), nunca síncrono aqui.
  */
+@ApiTags("bets")
+@ApiBearerAuth("bearer")
 @Controller()
 export class BetsController {
   constructor(
@@ -41,6 +50,34 @@ export class BetsController {
 
   @Post("bet")
   @HttpCode(201)
+  @ApiOperation({
+    summary: "Fazer aposta na rodada atual (apenas na fase de apostas)",
+    description:
+      "Cria a aposta em PENDING_FUNDS e dispara o débito via saga SQS (→ CONFIRMED ou REJECTED, " +
+      "por WebSocket). 1 aposta por jogador/rodada. O player vem do JWT, nunca do body.",
+  })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["amountCents"],
+      properties: {
+        amountCents: {
+          type: "integer",
+          example: 2000,
+          description: "Valor em centavos (mín. 100 / máx. 100000).",
+        },
+        autoCashoutTargetX100: {
+          type: "integer",
+          nullable: true,
+          example: 250,
+          description: "Alvo de auto-cashout ×100 (opcional; > 100).",
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: "Aposta criada (PENDING_FUNDS)." })
+  @ApiResponse({ status: 409, description: "Fora da fase de apostas ou aposta dupla." })
+  @ApiResponse({ status: 422, description: "Valor fora do range permitido." })
   async place(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: unknown,
@@ -51,6 +88,7 @@ export class BetsController {
     );
     const result = await this.placeBet.execute(
       user.sub,
+      user.username,
       BigInt(amountCents),
       autoCashoutTargetX100 ?? null,
     );
@@ -59,6 +97,15 @@ export class BetsController {
 
   @Post("bet/cashout")
   @HttpCode(200)
+  @ApiOperation({
+    summary: "Sacar no multiplicador atual (rodada RUNNING)",
+    description:
+      "Server-authoritative: sem body. O multiplicador vem do relógio do servidor; o payout " +
+      "= aposta × multiplicador (floor). Dispara o crédito via saga SQS.",
+  })
+  @ApiResponse({ status: 200, description: "Saque efetuado (CASHED_OUT)." })
+  @ApiResponse({ status: 404, description: "Sem aposta para sacar nesta rodada." })
+  @ApiResponse({ status: 409, description: "Rodada não está RUNNING ou saque redundante." })
   async cashOut(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<CashedOutBetDto> {
@@ -68,6 +115,8 @@ export class BetsController {
   }
 
   @Get("bets/me")
+  @ApiOperation({ summary: "Histórico paginado das apostas do jogador autenticado" })
+  @ApiResponse({ status: 200, description: "Lista de apostas (mais recentes primeiro)." })
   async mine(
     @CurrentUser() user: AuthenticatedUser,
     @Query("limit") limit?: string,

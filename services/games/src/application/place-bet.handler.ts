@@ -20,6 +20,9 @@ import {
   type BetRepository,
   type OutboxMessage,
 } from "./bet.repository";
+import { REALTIME_PUBLISHER, type RealtimePublisher } from "./realtime.port";
+import { betPlacedPayload } from "./realtime-events";
+import { RealtimeEvent } from "@crash-game/realtime-contracts";
 
 /**
  * Coloca uma aposta na rodada corrente e dispara o débito (saga). Cria a `Bet` em
@@ -35,6 +38,7 @@ export class PlaceBetHandler {
     @Inject(ROUND_REPOSITORY) private readonly rounds: RoundRepository,
     @Inject(BET_REPOSITORY) private readonly bets: BetRepository,
     @Inject(ENV) private readonly env: GamesEnv,
+    @Inject(REALTIME_PUBLISHER) private readonly realtime: RealtimePublisher,
   ) {
     this.limits = {
       min: Money.fromCents(env.BET_MIN_CENTS),
@@ -44,6 +48,7 @@ export class PlaceBetHandler {
 
   async execute(
     playerId: string,
+    username: string,
     amountCents: bigint,
     autoCashoutTargetX100: number | null,
   ): Promise<Result<Bet, DomainError>> {
@@ -57,6 +62,7 @@ export class PlaceBetHandler {
         betId: randomUUID(),
         roundId: round.id,
         playerId,
+        username,
         amount: Money.fromCents(amountCents),
         autoCashoutTargetX100,
       },
@@ -87,6 +93,8 @@ export class PlaceBetHandler {
       }
       throw err;
     }
+    // WS pós-commit (Risco 5): aposta entrou na lista da rodada (PENDING_FUNDS).
+    this.realtime.emitToPublic(RealtimeEvent.BetPlaced, betPlacedPayload(bet));
     return Result.ok(bet);
   }
 }

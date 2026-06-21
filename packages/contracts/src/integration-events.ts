@@ -65,9 +65,10 @@ export const FundsDebitedPayload = z.object({
 });
 export type FundsDebitedPayload = z.infer<typeof FundsDebitedPayload>;
 
-/** Débito recusado (saldo insuficiente) ⇒ a aposta vira `REJECTED`. */
+/** Débito recusado (saldo insuficiente) ⇒ a aposta vira `REJECTED`. Ecoa o `roundId` (WS). */
 export const FundsDebitRejectedPayload = z.object({
   betId: uuid,
+  roundId: uuid,
   playerId: uuid,
   amountCents,
   reason: z.string().min(1),

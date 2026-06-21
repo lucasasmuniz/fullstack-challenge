@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Result, type DomainError } from "@crash-game/domain-kit";
 import { multiplierAt } from "@crash-game/curve";
 import { IntegrationEventType } from "@crash-game/contracts";
+import { RealtimeEvent } from "@crash-game/realtime-contracts";
 import { ENV } from "@crash-game/nestjs-kit";
 import {
   Bet,
@@ -21,6 +22,8 @@ import {
   type BetRepository,
   type OutboxMessage,
 } from "./bet.repository";
+import { REALTIME_PUBLISHER, type RealtimePublisher } from "./realtime.port";
+import { betUpdatedFromBet } from "./realtime-events";
 
 /**
  * Saque manual (server-authoritative — ADR 0014). Ordem **fail-fast**: lê o `Round` e, se
@@ -38,6 +41,7 @@ export class CashoutHandler {
     @Inject(ROUND_REPOSITORY) private readonly rounds: RoundRepository,
     @Inject(BET_REPOSITORY) private readonly bets: BetRepository,
     @Inject(ENV) private readonly env: GamesEnv,
+    @Inject(REALTIME_PUBLISHER) private readonly realtime: RealtimePublisher,
   ) {}
 
   async execute(playerId: string): Promise<Result<Bet, DomainError>> {
@@ -89,6 +93,11 @@ export class CashoutHandler {
       }
       throw err;
     }
+    // WS pós-commit (Risco 5): saque confirmado (CASHED_OUT) — agregado em mãos, com username.
+    this.realtime.emitToPublic(
+      RealtimeEvent.BetUpdated,
+      betUpdatedFromBet(bet),
+    );
     return Result.ok(bet);
   }
 }

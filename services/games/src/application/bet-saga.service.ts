@@ -4,6 +4,10 @@ import {
   IntegrationEventType,
   type IntegrationMessage,
 } from "@crash-game/contracts";
+import {
+  RealtimeEvent,
+  type BetStatusWire,
+} from "@crash-game/realtime-contracts";
 import { RoundStatus, type Bet } from "../domain";
 import {
   ROUND_REPOSITORY,
@@ -12,8 +16,11 @@ import {
 import {
   BET_REPOSITORY,
   type BetRepository,
+  type BetMessageOutcome,
   type OutboxMessage,
 } from "./bet.repository";
+import { REALTIME_PUBLISHER, type RealtimePublisher } from "./realtime.port";
+import { betUpdatedFromSaga } from "./realtime-events";
 
 /**
  * Reações da saga aos eventos da Wallet (consumidos do `game-inbox`). `applyFromMessage`
@@ -32,7 +39,27 @@ export class BetSagaService {
   constructor(
     @Inject(BET_REPOSITORY) private readonly bets: BetRepository,
     @Inject(ROUND_REPOSITORY) private readonly rounds: RoundRepository,
+    @Inject(REALTIME_PUBLISHER) private readonly realtime: RealtimePublisher,
   ) {}
+
+  /**
+   * Emite `bet:updated` (sala pública) **só** quando a transição foi de fato aplicada
+   * (`applied`) — pós-commit (Risco 5). `no_op`/`duplicate`/`not_found` não emitem. Casado por
+   * `betId` no cliente (que já tem o `username` do `bet:placed`).
+   */
+  private emitBetUpdated(
+    outcome: BetMessageOutcome,
+    betId: string,
+    roundId: string,
+    status: BetStatusWire,
+  ): void {
+    if (outcome === "applied") {
+      this.realtime.emitToPublic(
+        RealtimeEvent.BetUpdated,
+        betUpdatedFromSaga(betId, roundId, status),
+      );
+    }
+  }
 
   async onFundsDebited(
     msg: IntegrationMessage<"FundsDebited">,
@@ -61,6 +88,7 @@ export class BetSagaService {
       this.logger.log(
         `Late-debit da aposta ${betId} → refund (rodada terminal): ${outcome}.`,
       );
+      this.emitBetUpdated(outcome, betId, roundId, "REFUNDED");
       return;
     }
 
@@ -71,6 +99,7 @@ export class BetSagaService {
       (b) => b.confirm(new Date()),
     );
     this.logger.debug(`FundsDebited aplicado à aposta ${betId}: ${outcome}.`);
+    this.emitBetUpdated(outcome, betId, roundId, "CONFIRMED");
   }
 
   async onFundsDebitRejected(
@@ -81,6 +110,12 @@ export class BetSagaService {
       msg.type,
       msg.payload.betId,
       (b) => b.reject(msg.payload.reason, new Date()),
+    );
+    this.emitBetUpdated(
+      outcome,
+      msg.payload.betId,
+      msg.payload.roundId,
+      "REJECTED",
     );
     this.logger.debug(
       `FundsDebitRejected aplicado à aposta ${msg.payload.betId}: ${outcome}.`,
