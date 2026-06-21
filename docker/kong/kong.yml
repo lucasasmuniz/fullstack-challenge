@@ -4,6 +4,13 @@ services:
   - name: games-service
     url: http://games:4001
     routes:
+      # WebSocket (Etapa 6): socket.io no path `/games/socket.io/`. strip_path:false → o path
+      # chega INTACTO ao gateway (que escuta exatamente nesse path; Risco 2). Rota mais
+      # específica que `/games`, então o Kong a casa primeiro. Kong encaminha o Upgrade 101.
+      - name: games-ws
+        paths:
+          - /games/socket.io
+        strip_path: false
       - name: games-routes
         paths:
           - /games
@@ -12,6 +19,10 @@ services:
   - name: wallets-service
     url: http://wallets:4002
     routes:
+      - name: wallets-ws
+        paths:
+          - /wallets/socket.io
+        strip_path: false
       - name: wallets-routes
         paths:
           - /wallets

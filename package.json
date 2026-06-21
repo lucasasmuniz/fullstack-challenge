@@ -20,6 +20,7 @@
     "@crash-game/typescript-config": "workspace:*",
     "bun-types": "latest",
     "eslint": "^9.13.0",
+    "socket.io-client": "^4.8.1",
     "typescript": "^5.8.3"
   },
   "type": "module"
