@@ -69,7 +69,7 @@ export function BetButton(p: Props) {
 
   if (p.status === "CASHED_OUT") {
     return (
-      <button disabled className={cn(XL, "bg-primary/15 text-primary")}>
+      <button disabled className={cn(XL, "bg-primary/15 text-primary animate-[cashPop_0.4s_ease-out]")}>
         <span className="text-base font-semibold">Você sacou ✓</span>
       </button>
     );

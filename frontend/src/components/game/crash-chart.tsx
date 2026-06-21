@@ -128,6 +128,12 @@ export function CrashChart() {
           />
         </>
       )}
+      {crashed && crash && (
+        <span
+          key={crash.serverSeed}
+          className="pointer-events-none absolute inset-0 bg-danger animate-[crashFlash_0.5s_ease-out_forwards]"
+        />
+      )}
 
       {betting ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5">

@@ -8,6 +8,7 @@ import { useWallet } from "@/hooks/use-wallet";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAuthActions } from "@/hooks/use-auth-actions";
 import { useEnsureWallet } from "@/hooks/use-ensure-wallet";
+import { useCountUp } from "@/hooks/use-count-up";
 import { useUiStore } from "@/stores/ui-store";
 import { formatBRL } from "@/lib/utils";
 
@@ -36,9 +37,11 @@ export function AppHeader() {
             <span className="hidden text-[10px] uppercase tracking-[0.14em] text-faint sm:block">
               Saldo
             </span>
-            <span className="tabular text-base font-semibold text-primary">
-              {wallet ? formatBRL(wallet.balanceCents) : "—"}
-            </span>
+            {wallet ? (
+              <Balance cents={wallet.balanceCents} />
+            ) : (
+              <span className="tabular text-base font-semibold text-primary">—</span>
+            )}
           </div>
 
           <Button size="sm" className="h-[38px]" onClick={() => openModal({ type: "deposit" })}>
@@ -102,5 +105,15 @@ export function AppHeader() {
         </div>
       )}
     </header>
+  );
+}
+
+/** Saldo com count-up animado ao creditar/debitar. */
+function Balance({ cents }: { cents: number }) {
+  const animated = useCountUp(cents);
+  return (
+    <span className="tabular text-base font-semibold text-primary">
+      {formatBRL(animated)}
+    </span>
   );
 }
