@@ -17,9 +17,8 @@ interface RequestWithUser {
 }
 
 /**
- * Guard global secure-by-default: toda rota exige um Bearer token válido, salvo
- * as marcadas com `@Public()`. Em sucesso, popula `req.user` ({@link AuthenticatedUser});
- * em qualquer falha, responde 401 sem vazar detalhes ao cliente.
+ * Guard global secure-by-default: toda rota exige Bearer válido, salvo as `@Public()`. Popula
+ * `req.user` no sucesso; responde 401 sem vazar detalhes na falha.
  */
 @Injectable()
 export class JwksGuard implements CanActivate {

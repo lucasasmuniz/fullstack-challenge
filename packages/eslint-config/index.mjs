@@ -1,5 +1,3 @@
-// Flat config compartilhado do monorepo @crash-game.
-// Type-aware (projectService) para habilitar regras como no-floating-promises.
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
@@ -26,7 +24,6 @@ export default tseslint.config(
     },
   },
   {
-    // Arquivos de config / JS não entram no type-checking.
     files: ["**/*.js", "**/*.mjs", "**/*.cjs"],
     ...tseslint.configs.disableTypeChecked,
   },

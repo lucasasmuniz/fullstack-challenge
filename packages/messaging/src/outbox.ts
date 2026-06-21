@@ -4,7 +4,6 @@ import type {
 } from "@crash-game/contracts";
 import type { SqsClient } from "./sqs-client";
 
-/** Uma linha pendente da tabela outbox (a forma mínima que o relay precisa). */
 export interface OutboxRecord {
   readonly id: string;
   readonly type: IntegrationEventType;
@@ -12,39 +11,25 @@ export interface OutboxRecord {
   readonly createdAt: Date;
 }
 
-/** Publica uma linha da outbox; lança em falha técnica (mantém a linha pendente p/ retry). */
 export type PublishFn = (record: OutboxRecord) => Promise<void>;
 
 /**
- * Port da outbox (implementada por cada serviço com MikroORM). `processPending` é
- * **transacional e distribuído**: abre uma tx, seleciona linhas pendentes com
- * `FOR UPDATE SKIP LOCKED` (cada instância pega um lote disjunto, sem contenção),
- * chama `publish` por linha e marca `sent` no sucesso / incrementa `attempts` + backoff
- * na falha — tudo na mesma tx. Retorna quantas processou (0 = nada pendente).
- *
- * Manter o `publish` **dentro** da tx garante que, se o commit falhar após o envio, a
- * linha continua pendente e será republicada (at-least-once); o consumidor deduplica por
- * `messageId`. Nunca há mensagem publicada sem a linha marcada de forma inconsistente.
+ * Port da outbox (implementada por cada serviço). `processPending` roda numa tx que seleciona as
+ * pendentes com `FOR UPDATE SKIP LOCKED` (cada instância pega um lote disjunto), publica e marca
+ * `sent`/incrementa `attempts` na mesma tx. `publish` dentro da tx garante at-least-once (falha de
+ * commit pós-envio mantém a linha pendente; o consumidor deduplica por `messageId`).
  */
 export interface OutboxStore {
   processPending(limit: number, publish: PublishFn): Promise<number>;
 }
 
 export interface OutboxRelayConfig {
-  /** Fila destino (Game→`wallet-inbox`, Wallet→`game-inbox`). */
   readonly queueUrl: string;
-  /** Intervalo do poller. */
   readonly pollIntervalMs: number;
-  /** Linhas por ciclo. */
   readonly batchSize: number;
 }
 
-/**
- * Relay da outbox: poller que drena as linhas pendentes e as publica no SQS. A montagem
- * do envelope ({@link IntegrationMessage}) vive aqui; a transação/SKIP LOCKED vive no
- * `OutboxStore` do serviço. Roda em **todas as instâncias** — o SKIP LOCKED shardeia o
- * trabalho automaticamente.
- */
+/** Poller que drena as linhas pendentes da outbox e as publica no SQS. */
 export class OutboxRelay {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
@@ -73,7 +58,6 @@ export class OutboxRelay {
     }
   }
 
-  /** Um ciclo de drenagem (exposto para testes determinísticos). */
   async drainOnce(): Promise<number> {
     return this.store.processPending(this.config.batchSize, (record) =>
       this.publish(record),
@@ -111,7 +95,6 @@ export class OutboxRelay {
       this.onError(err);
     } finally {
       this.draining = false;
-      // Se drenou um lote cheio, provavelmente há mais — volta logo; senão, espera o intervalo.
       const full = processed >= this.config.batchSize;
       this.scheduleNext(full ? 0 : this.config.pollIntervalMs);
     }

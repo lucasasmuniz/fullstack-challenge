@@ -33,7 +33,6 @@ export class CreateWalletHandler {
     try {
       await this.wallets.save(wallet);
     } catch (error) {
-      // Corrida de dois creates p/ o mesmo player → UNIQUE(player_id) na projeção.
       if (error instanceof UniqueConstraintViolationException) {
         return Result.fail(new WalletAlreadyExistsError());
       }

@@ -1,7 +1,7 @@
 import { Migration } from "@mikro-orm/migrations";
 
 /**
- * Cold storage do provably fair (ADR 0013): `seed_chain` (metadados, 1 ativa por vez) +
+ * Cold storage do provably fair: `seed_chain` (metadados, 1 ativa por vez) +
  * `seed_chain_seed` (sementes, **PK composta `(chain_id, index)`** para coexistência de
  * cadeias na rotação). Consumo O(1) por `(chain_id, index)`.
  */
@@ -20,7 +20,6 @@ export class Migration20260619000100 extends Migration {
         constraint "seed_chain_pkey" primary key ("id")
       );
     `);
-    // No máximo uma cadeia ativa por vez.
     this.addSql(
       `create unique index "seed_chain_active_unique" on "seed_chain" ("active") where "active" = true;`,
     );

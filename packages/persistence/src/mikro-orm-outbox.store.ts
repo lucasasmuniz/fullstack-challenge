@@ -8,17 +8,11 @@ import {
   type PublishFn,
 } from "@crash-game/messaging";
 
-/** Backoff exponencial limitado para a republicação de uma linha que falhou. */
 const BASE_BACKOFF_MS = 1000;
 const MAX_BACKOFF_MS = 60000;
-/**
- * Poison-pill escape: após N falhas a linha vira `failed` e sai do ciclo de poll (o filtro
- * `status='pending'` a ignora) — o equivalente, na escrita, à DLQ que o consumidor tem via
- * `maxReceiveCount`. Evita retry infinito de uma linha venenosa.
- */
+/** Após N falhas a linha vira `failed` e sai do poll — equivalente, na escrita, à DLQ do consumidor. */
 const MAX_PUBLISH_ATTEMPTS = 10;
 
-/** Forma mínima de uma linha de outbox que o store manipula (cada serviço tem sua entidade). */
 export interface OutboxRowShape {
   id: string;
   type: string;
@@ -31,12 +25,10 @@ export interface OutboxRowShape {
 }
 
 /**
- * Store de outbox MikroORM **compartilhado** (games e wallets têm a MESMA lógica; antes era
- * duplicada). `processPending` abre uma tx, seleciona pendentes vencidas com `FOR UPDATE SKIP
- * LOCKED` (cada instância pega um lote disjunto, sem contenção), publica cada uma e marca
- * `sent` / agenda backoff / vira `failed` (poison-pill) — tudo na mesma tx. Manter o `publish`
- * dentro da tx garante at-least-once (se o commit falhar após o envio, a linha continua
- * pendente e o consumidor deduplica por `messageId`).
+ * Store de outbox MikroORM compartilhado por games e wallets. `processPending` seleciona pendentes
+ * vencidas com `FOR UPDATE SKIP LOCKED` (cada instância pega um lote disjunto), publica e marca
+ * `sent`/agenda backoff/vira `failed`, tudo na mesma tx. `publish` dentro da tx garante at-least-once
+ * (commit falho após o envio mantém a linha pendente; o consumidor deduplica por `messageId`).
  */
 export function createMikroOrmOutboxStore(
   em: EntityManager,

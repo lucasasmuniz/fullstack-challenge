@@ -5,7 +5,7 @@ import {
 } from "@crash-game/contracts";
 import type { ReceiveOptions, SqsClient } from "./sqs-client";
 
-/** Handler de um tipo de mensagem. Deve ser **idempotente** (a entrega é at-least-once). */
+/** Handler de um tipo de mensagem. Deve ser idempotente (entrega at-least-once). */
 export type MessageHandler<T extends IntegrationEventType = IntegrationEventType> = (
   message: IntegrationMessage<T>,
 ) => Promise<void>;
@@ -17,23 +17,14 @@ export type HandlerMap = {
 export interface SqsConsumerConfig {
   readonly queueUrl: string;
   readonly receive: ReceiveOptions;
-  /**
-   * Espera (macrotask) após um receive vazio. Em produção o long-poll (`waitTimeSeconds`)
-   * já segura a chamada, então pode ser pequena; com `waitTimeSeconds=0` (testes) ela é
-   * essencial para o loop **ceder** e não famintar o `stop()`. Default 250ms.
-   */
   readonly idlePollDelayMs?: number;
 }
 
 /**
- * Consumidor SQS long-poll. Por mensagem: valida o envelope (zod do `@crash-game/contracts`),
- * despacha para o handler do `type` e **deleta no sucesso** (ack). Erro de parse (contrato
- * quebrado) ou throw do handler → **não deleta** → a mensagem reaparece após o visibility
- * timeout → retry; após `maxReceiveCount` (redrive policy, já configurada nas filas) vai p/
- * a DLQ. A idempotência (inbox + máquinas de estado) torna o retry seguro.
- *
- * Mensagem cujo `type` não tem handler nesta fila é tratada como ruído e deletada (ack), para
- * não entupir a fila — cada fila só recebe os tipos que lhe interessam por design.
+ * Consumidor SQS long-poll. Por mensagem: valida o envelope, despacha para o handler do `type` e
+ * deleta no sucesso (ack). Erro de parse ou throw do handler não deleta → a mensagem reaparece
+ * após o visibility timeout (retry; DLQ após `maxReceiveCount`). Tipo sem handler nesta fila é
+ * deletado como ruído.
  */
 export class SqsConsumer {
   private running = false;
@@ -70,8 +61,6 @@ export class SqsConsumer {
           this.config.receive,
         );
         if (messages.length === 0) {
-          // Receive vazio: cede o event loop (macrotask) — sem isto, com long-poll=0 o
-          // while famintaria os timers (ex.: o do stop()) num busy-loop de microtasks.
           await delay(this.config.idlePollDelayMs ?? 250);
           continue;
         }
@@ -83,7 +72,6 @@ export class SqsConsumer {
         }
       } catch (err) {
         this.onError(err);
-        // Erro de rede no receive: pequena espera para não fazer busy-loop.
         await delay(1000);
       }
     }
@@ -94,7 +82,6 @@ export class SqsConsumer {
     try {
       message = parseIntegrationMessage(JSON.parse(body));
     } catch (err) {
-      // Contrato inválido: não deleta → DLQ via redrive. Loga para diagnóstico.
       this.onError(err, body);
       return;
     }
@@ -103,7 +90,6 @@ export class SqsConsumer {
       | MessageHandler
       | undefined;
     if (!handler) {
-      // Tipo sem handler nesta fila = ruído; ack para não reprocessar eternamente.
       await this.client.delete(this.config.queueUrl, receiptHandle);
       return;
     }
@@ -112,7 +98,6 @@ export class SqsConsumer {
       await handler(message);
       await this.client.delete(this.config.queueUrl, receiptHandle);
     } catch (err) {
-      // Falha de processamento: não deleta → retry/DLQ.
       this.onError(err, body);
     }
   }

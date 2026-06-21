@@ -7,15 +7,13 @@ import { VALKEY, type ValkeyPort } from "./valkey.port";
 const LEASE_KEY = "scheduler:leader";
 
 /**
- * Lease de líder no Valkey — garante **um** runner do `RoundScheduler` (ADR 0015). O
+ * Lease de líder no Valkey — garante **um** runner do `RoundScheduler`. O
  * `token` é único por processo; renovar/soltar são escopados por dono (Lua). É só uma
  * otimização (evitar trabalho duplicado): a **correção** vem do fencing por `Round.version`
  * no save — um líder obsoleto falha o UPDATE condicional.
  */
 @Injectable()
 export class LeaderLease {
-  // Token por **epoch de liderança**: um novo a cada `acquire()`. Assim um renew atrasado
-  // de uma liderança anterior não renova por engano a atual (m4 do review).
   private token = randomUUID();
 
   constructor(

@@ -50,7 +50,6 @@ export function toRow(event: WalletDomainEvent): WalletEventRow {
     };
   }
 
-  // FundsCredited | FundsDebited
   return {
     ...base,
     amountCents: event.amountCents,

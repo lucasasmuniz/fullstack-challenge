@@ -109,7 +109,6 @@ export class BetsController {
   async cashOut(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<CashedOutBetDto> {
-    // Sem body: server-authoritative. O player vem do JWT; o multiplicador, do relógio do servidor.
     const result = await this.cashout.execute(user.sub);
     return toCashedOutBetDto(unwrapOrThrow(result));
   }

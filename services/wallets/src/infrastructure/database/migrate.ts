@@ -3,7 +3,7 @@ import { createOrmConfig } from "./orm.config";
 
 /**
  * Runner de migrations standalone (debug/CI). No fluxo normal as migrations rodam
- * sozinhas no boot do serviço (`migrator.up()` no `main.ts`, zero-manual — R1); este
+ * sozinhas no boot do serviço (`migrator.up()` no `main.ts`, zero-manual); este
  * script existe para aplicá-las/revertê-las à mão sem subir o NestJS.
  *
  *   bun run db:migrate           # aplica pendentes (up)

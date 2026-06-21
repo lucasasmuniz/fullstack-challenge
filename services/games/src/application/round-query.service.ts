@@ -74,8 +74,6 @@ export class RoundQueryService {
     if (prev && isRevealed(prev)) {
       const crossChainBoundary = prev.chainId !== round.chainId;
       chainLink = {
-        // chain[i-1] = sha256(chain[i]) → sha256(seed_R) == seed_{R-1} (revelado). Só vale
-        // dentro da MESMA cadeia; na fronteira de rotação não há elo (ok=true, boundary=true).
         ok: crossChainBoundary
           ? true
           : this.provablyFair.verifyChainLink(serverSeed, prev.getServerSeed()),

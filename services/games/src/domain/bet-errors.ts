@@ -64,7 +64,7 @@ export class BetNotConfirmedError extends DomainError {
 
 /**
  * Jogador já apostou nesta rodada (invariante "1 aposta/jogador/rodada", imposta por
- * `UNIQUE(round_id, player_id)` no banco — ADR 0012). Mapeado para HTTP 409.
+ * `UNIQUE(round_id, player_id)` no banco). Mapeado para HTTP 409.
  */
 export class BetAlreadyExistsError extends DomainError {
   readonly code = "BET_ALREADY_EXISTS";

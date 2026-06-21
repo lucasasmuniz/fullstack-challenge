@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
 
 /**
- * `seed_chain` — metadados de uma cadeia de seeds pré-gerada (cold storage, ADR 0013).
+ * `seed_chain` — metadados de uma cadeia de seeds pré-gerada (cold storage).
  * Há no máximo **uma** cadeia `active` por vez (índice único parcial). O `cursor` é o
  * **próximo índice a consumir**, crescente (0 → length): a cadeia é gerada hasheando
  * para baixo (`chain[i] = sha256(chain[i+1])`) e **consumida no sentido reverso**
@@ -25,8 +25,8 @@ export class SeedChainEntity {
   cursor!: number;
 
   /**
-   * Salt público (entropia externa do beacon) misturado no HMAC da derivação (ADR 0011/
-   * 0017). **Nullable**: a cadeia é criada com o commitment (`beaconRound`) mas o valor só
+   * Salt público (entropia externa do beacon) misturado no HMAC da derivação.
+   * **Nullable**: a cadeia é criada com o commitment (`beaconRound`) mas o valor só
    * é resolvido na ativação (depois do commit → anti-pré-computação). A cadeia só pode ser
    * consumida com `publicSeed` resolvido.
    */

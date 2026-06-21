@@ -1,7 +1,7 @@
 import { Migration } from "@mikro-orm/migrations";
 
 /**
- * Saga Game↔Wallet (Etapa 5a) no DB `wallets`:
+ * Saga Game↔Wallet no DB `wallets`:
  * - `outbox` — transactional outbox (resultados `FundsDebited`/`FundsDebitRejected`/
  *   `FundsCredited`; `id` = `messageId`).
  * - `inbox` — dedup de mensagens recebidas (`DebitFunds`/`CreditFunds`).

@@ -30,11 +30,7 @@ import {
   parseOrBadRequest,
 } from "../http/validation";
 
-/**
- * Rotas da própria carteira (Kong faz strip de `/wallets`, então internamente são
- * `/`, `/me`, `/deposit`, `/withdraw`). Todas exigem auth (guard global); o
- * `player_id` vem **sempre** do `sub` do JWT, nunca do body.
- */
+/** Rotas da própria carteira. Todas exigem auth; o `player_id` vem sempre do `sub` do JWT. */
 @ApiTags("wallet")
 @ApiBearerAuth("bearer")
 @Controller()

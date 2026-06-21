@@ -12,7 +12,7 @@ import type {
 
 /**
  * Adapter do {@link ChainGenerator} que roda a geração (O(N) SHA-256) num **worker
- * thread** (B1) — mantém o event loop, o HTTP e a renovação do lease responsivos.
+ * thread** — mantém o event loop, o HTTP e a renovação do lease responsivos.
  *
  * O worker devolve só `serverSeeds[] + rootCommitment`; aqui derivamos os
  * `serverSeedHash` sem hashing extra: `serverSeedHash[i+1] = serverSeeds[i]` e
@@ -41,7 +41,6 @@ export class WorkerChainGenerator implements ChainGenerator {
       });
 
       worker.once("error", (err: unknown) => {
-        // prefer-promise-reject-errors: garante que a rejeição seja sempre um Error.
         reject(err instanceof Error ? err : new Error(String(err)));
         void worker.terminate();
       });

@@ -3,10 +3,8 @@ import { AwsSqsClient } from "@crash-game/messaging";
 import { ENV } from "@crash-game/nestjs-kit";
 import type { GamesEnv } from "../config/env.schema";
 
-/** Token DI do `SqsClient` (port do `@crash-game/messaging`). */
 export const SQS_CLIENT = Symbol("SQS_CLIENT");
 
-/** Cria o `AwsSqsClient` a partir da env (endpoint do LocalStack em dev). */
 export const sqsClientProvider: Provider = {
   provide: SQS_CLIENT,
   inject: [ENV],

@@ -10,7 +10,7 @@ import type {
 const INSERT_BATCH = 5000;
 
 /**
- * Adapter MikroORM da cold storage da cadeia (ADR 0013). O **consumo** por-rodada NÃO
+ * Adapter MikroORM da cold storage da cadeia. O **consumo** por-rodada NÃO
  * vive aqui — é atômico com o insert da rodada no {@link MikroOrmRoundOpener}. Aqui ficam
  * criação/ativação/rotação e o read-ahead do buffer.
  */
@@ -71,8 +71,6 @@ export class MikroOrmSeedChainRepository implements SeedChainRepository {
       if (from) {
         from.active = false;
       }
-      // Flush o desativamento antes de ativar a nova → respeita o índice único parcial
-      // (no máx. 1 ativa); senão poderia haver 2 ativas no meio do flush.
       await em.flush();
       const to = await em.findOne(SeedChainEntity, { id: toChainId });
       if (to) {

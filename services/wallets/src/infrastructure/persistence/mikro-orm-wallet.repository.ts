@@ -113,14 +113,12 @@ export class MikroOrmWalletRepository implements WalletRepository {
     const events = (wallet?.pullEvents() ?? []) as WalletDomainEvent[];
     const now = new Date();
     await this.em.transactional(async (em) => {
-      // Inbox dedup PRIMEIRO: conflito aqui aborta a tx (idempotência de mensagem).
       await em.insert(InboxEntity, {
         messageId: inbox.messageId,
         type: inbox.type,
         processedAt: now,
       });
 
-      // Append dos eventos (vazio se carteira ausente ou débito recusado — saldo intacto).
       for (const event of events) {
         em.persist(em.create(WalletEventEntity, toRow(event)));
       }
@@ -144,7 +142,6 @@ export class MikroOrmWalletRepository implements WalletRepository {
         }
       }
 
-      // Outbox da resposta (publicada pelo relay após o commit → game-inbox).
       em.persist(
         em.create(OutboxEntity, {
           id: outbox.id,

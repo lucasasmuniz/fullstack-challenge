@@ -1,5 +1,5 @@
 /**
- * Beacon de entropia pública (M4) — fonte **externa e imprevisível** para o `publicSeed`
+ * Beacon de entropia pública — fonte **externa e imprevisível** para o `publicSeed`
  * que entra no HMAC do crash point. A propriedade anti-pré-computação só existe se o
  * valor for desconhecido pelo operador **no momento em que ele gera a cadeia**: por isso
  * commitamos uma rodada **futura** do beacon (que ainda não foi produzida) ao criar a

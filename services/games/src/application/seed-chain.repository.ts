@@ -29,7 +29,7 @@ export interface SeedRow {
 }
 
 /**
- * Port da cold storage da cadeia (ADR 0013). **Não** faz o consumo por-rodada — esse é
+ * Port da cold storage da cadeia. **Não** faz o consumo por-rodada — esse é
  * atômico junto com o insert da rodada, no {@link RoundOpener} (mesma transação, M1).
  * Aqui ficam só criação/rotação/ativação e o read-ahead do buffer.
  */

@@ -1,9 +1,9 @@
 import { Migration } from "@mikro-orm/migrations";
 
 /**
- * Saga Game↔Wallet (Etapa 5a) no DB `games`:
+ * Saga Game↔Wallet no DB `games`:
  * - `bet` — aposta state-stored. `UNIQUE(round_id, player_id)` impõe "1 aposta/jogador/
- *   rodada" (ADR 0012); `CHECK(amount_cents > 0)`; `version` p/ concorrência otimista.
+ *   rodada"; `CHECK(amount_cents > 0)`; `version` p/ concorrência otimista.
  * - `outbox` — transactional outbox (publicada pelo relay; `id` = `messageId`).
  * - `inbox` — dedup de mensagens recebidas (idempotência exactly-once).
  */

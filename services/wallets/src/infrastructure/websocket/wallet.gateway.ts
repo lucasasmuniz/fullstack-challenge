@@ -21,10 +21,10 @@ import type { Server, Socket } from "socket.io";
 import type { RealtimePublisher } from "../../application/realtime.port";
 
 /**
- * Gateway WS da Wallet (server→client). Handshake **estrito** (Risco 3): sem token válido →
+ * Gateway WS da Wallet (server→client). Handshake **estrito**: sem token válido →
  * **rejeita** a conexão (saldo é privado; sem identidade não há sala). Cada cliente entra só na
  * sua sala `user:{sub}`. Implementa {@link RealtimePublisher} (push direcionado de saldo).
- * WebSocket-only + path casado com o Kong (Risco 2).
+ * WebSocket-only + path casado com o Kong.
  */
 @WebSocketGateway(gatewayOptions("/wallets/socket.io/"))
 export class WalletGateway
@@ -38,7 +38,6 @@ export class WalletGateway
   constructor(@Inject(JWT_VERIFIER) private readonly verifier: JwtVerifier) {}
 
   afterInit(server: Server): void {
-    // Handshake estrito: token ausente/ inválido → rejeita (next com erro).
     server.use((socket: Socket, next: (err?: Error) => void) => {
       const token = extractHandshakeToken(socket);
       if (!token) {
@@ -60,7 +59,6 @@ export class WalletGateway
   handleConnection(socket: Socket): void {
     const user = getSocketUser(socket);
     if (!user) {
-      // Não deveria ocorrer (handshake estrito), mas fecha por segurança.
       socket.disconnect(true);
       return;
     }

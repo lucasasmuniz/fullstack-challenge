@@ -81,7 +81,6 @@ describe("integration-events contracts", () => {
       playerId: PLAYER_ID,
       amountCents: 500,
     });
-    // pedir o schema de DebitFunds para uma mensagem FundsDebited falha no literal.
     expect(() =>
       integrationMessageSchema(IntegrationEventType.DebitFunds).parse(msg),
     ).toThrow();

@@ -6,17 +6,12 @@ import { Redis } from "ioredis";
 import type { Server, ServerOptions } from "socket.io";
 
 /**
- * `IoAdapter` que pluga o `@socket.io/redis-adapter` no Valkey — faz um `emit` numa instância
- * alcançar sockets de **outra** instância (fanout horizontal; R4). Usa 2 conexões ioredis
- * **dedicadas** (pub/sub bloqueiam a conexão), separadas da conexão de comandos do lease/buffer.
+ * `IoAdapter` que pluga o `@socket.io/redis-adapter` no Valkey — um `emit` numa instância alcança
+ * sockets de outra (fanout horizontal). Usa 2 conexões ioredis dedicadas (pub/sub bloqueiam a conexão).
  *
- * **Gotcha sob Bun:** passar o `app` ao `IoAdapter` faz o `AbstractWsAdapter` capturar o http
- * server via `getUnderlyingHttpServer()`, que sob Bun é `undefined` **antes** de `app.listen()`
- * (criação lazy) → socket.io estoura `server.listeners is not a function` no attach. Passamos
- * `app.getHttpServer()` (que **força** a criação do `http.Server`) direto ao super.
- *
- * Registrado em `main.ts` via `app.useWebSocketAdapter(...)`. Em 1 instância o broadcast local
- * já basta, mas o adapter mantém a correção para escala. Chame `connect()` antes de usar.
+ * Gotcha sob Bun: passamos `app.getHttpServer()` (não o `app`) ao super porque `getUnderlyingHttpServer()`
+ * é `undefined` antes de `app.listen()` (criação lazy) → socket.io estoura no attach. Chame `connect()`
+ * antes de usar.
  */
 export class ValkeyIoAdapter extends IoAdapter {
   private adapterFactory?: ReturnType<typeof createAdapter>;
@@ -27,8 +22,6 @@ export class ValkeyIoAdapter extends IoAdapter {
     app: INestApplication,
     private readonly valkeyUrl: string,
   ) {
-    // `getHttpServer()` força a criação do `http.Server` (lazy sob Bun) e é tipado `any` pelo
-    // Nest — fixamos em `http.Server` para o super (que aceita o server diretamente).
     super(app.getHttpServer() as HttpServer);
   }
 
@@ -49,8 +42,6 @@ export class ValkeyIoAdapter extends IoAdapter {
 
   override async dispose(): Promise<void> {
     await super.dispose();
-    // `disconnect()` é idempotente (seguro se já fechado) — `app.close()` pode chamar dispose,
-    // e o teste o chama de novo. Limpa as refs para não reprocessar.
     this.pubClient?.disconnect();
     this.subClient?.disconnect();
     this.pubClient = undefined;

@@ -2,10 +2,7 @@ import { OutboxRelay, type OutboxRelayConfig, type OutboxStore } from "./outbox"
 import { SqsConsumer, type HandlerMap } from "./sqs-consumer";
 import type { ReceiveOptions, SqsClient } from "./sqs-client";
 
-/**
- * Logger estrutural (compatível com o `Logger` do NestJS, mas sem importá-lo) — mantém o
- * pacote livre de framework. Qualquer logger com estes métodos serve.
- */
+/** Logger estrutural compatível com o do NestJS, sem importá-lo (mantém o pacote livre de framework). */
 export interface LoggerLike {
   log(message: string): void;
   warn(message: string): void;
@@ -13,13 +10,11 @@ export interface LoggerLike {
   debug(message: string): void;
 }
 
-/** Normaliza um erro desconhecido para mensagem legível (sem vazar stack ao cliente/log). */
 export function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
 export interface InboxConsumerOptions {
-  /** Rótulo da fila para logs (ex.: `"game-inbox"`). */
   readonly queueLabel: string;
   readonly queueUrl: string;
   readonly receive: ReceiveOptions;
@@ -27,11 +22,7 @@ export interface InboxConsumerOptions {
   readonly logger: LoggerLike;
 }
 
-/**
- * Monta um `SqsConsumer` com o callback de erro padronizado (idêntico entre serviços): loga a
- * falha **sem** o corpo e o corpo cru só em `debug` — evita PII (playerId/betId) no log padrão.
- * Não inicia: o chamador chama `.start()`.
- */
+/** `SqsConsumer` com erro padronizado: loga sem o corpo; corpo cru só em `debug` (evita PII no log). */
 export function createInboxConsumer(
   client: SqsClient,
   opts: InboxConsumerOptions,
@@ -56,11 +47,9 @@ export interface OutboxRelayHostOptions {
   readonly client: SqsClient;
   readonly config: OutboxRelayConfig;
   readonly logger: LoggerLike;
-  /** Rótulo da fila destino para logs (ex.: `"wallet-inbox"`). */
   readonly destinationLabel: string;
 }
 
-/** Monta um `OutboxRelay` com o callback de erro padronizado. Não inicia: o chamador chama `.start()`. */
 export function createOutboxRelay(opts: OutboxRelayHostOptions): OutboxRelay {
   return new OutboxRelay(opts.store, opts.client, opts.config, (err) =>
     opts.logger.error(

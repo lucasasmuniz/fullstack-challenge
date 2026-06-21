@@ -31,8 +31,6 @@ export class Migration20260619000200 extends Migration {
       `alter table "round" add constraint "round_round_number_unique" unique ("round_number");`,
     );
     this.addSql(`create index "round_status_index" on "round" ("status");`);
-    // Sequência para round_number — gera números monotônicos sem race (substitui o
-    // read-then-+1, que era TOCTOU; m3 do review).
     this.addSql(`create sequence "round_number_seq" as bigint start with 1;`);
   }
 

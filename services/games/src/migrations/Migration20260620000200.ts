@@ -1,7 +1,7 @@
 import { Migration } from "@mikro-orm/migrations";
 
 /**
- * Etapa 6 (WebSocket): adiciona `bet.username` — capturado do JWT no `POST /bet` e emitido nos
+ * WebSocket: adiciona `bet.username` — capturado do JWT no `POST /bet` e emitido nos
  * eventos WS para a lista de apostas em tempo real. `not null default ''` cobre linhas antigas;
  * inserts novos sempre informam o username (do `sub`/`preferred_username` do token).
  */

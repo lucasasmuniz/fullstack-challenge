@@ -23,11 +23,6 @@ import {
 /** `1.00x` em inteiro ×100 — piso de qualquer multiplicador. */
 const MIN_MULTIPLIER_X100 = 100;
 
-/**
- * Estado completo da aposta — toda construção passa pelo construtor privado, então o
- * compilador garante (via `strictPropertyInitialization`) que nenhum campo fica sem
- * atribuição. Evita o `!`. Reusado por `place`/`reconstitute` e pelo repo (Etapa 4).
- */
 export interface BetState {
   betId: string;
   roundId: string;
@@ -45,13 +40,9 @@ export interface BetState {
 }
 
 /**
- * Bet — agregado separado (ADR 0012); referencia a rodada apenas por `roundId`. Estado
- * é a fonte da verdade (CQRS); os domain events são side-output. `version` habilita
- * concorrência otimista no repositório (Etapa 5).
- *
- * Máquina de estados (1ª linha de defesa contra dupla liquidação): `cashout` só sai de
- * `CONFIRMED`. O 2º clique de um cliente em pânico encontra estado já terminal e recebe
- * `BetNotCashableError` (409) — nunca uma segunda liquidação.
+ * Aposta — agregado separado, referencia a rodada só por `roundId`. O estado é a fonte da
+ * verdade; `version` habilita concorrência otimista no repositório. A máquina de estados é a
+ * 1ª linha contra dupla liquidação: `cashout` só sai de `CONFIRMED`.
  */
 export class Bet extends AggregateRoot<string> {
   private _roundId: string;
@@ -121,10 +112,9 @@ export class Bet extends AggregateRoot<string> {
   }
 
   /**
-   * Registra uma aposta nova em `PENDING_FUNDS` (aguarda débito via saga, Etapa 5).
-   * Valida valor em `[min, max]` e o alvo de auto-cashout (se houver). A invariante
-   * "1 aposta/jogador/rodada" **não** é imposta aqui (agregados separados) → garantida
-   * por `UNIQUE(round_id, player_id)` no banco (Etapa 5).
+   * Registra uma aposta nova em `PENDING_FUNDS` (aguarda débito via saga). Valida valor em
+   * `[min, max]` e o alvo de auto-cashout. "1 aposta/jogador/rodada" é garantida por
+   * `UNIQUE(round_id, player_id)` no banco, não aqui (agregados separados).
    */
   static place(
     props: {
@@ -181,7 +171,6 @@ export class Bet extends AggregateRoot<string> {
     return Result.ok(bet);
   }
 
-  /** `PENDING_FUNDS → CONFIRMED` (débito confirmado pela Wallet). */
   confirm(now: Date): Result<void, BetNotPendingError> {
     if (this._status !== BetStatus.PENDING_FUNDS) {
       return Result.fail(new BetNotPendingError());
@@ -193,7 +182,6 @@ export class Bet extends AggregateRoot<string> {
     return Result.ok(undefined);
   }
 
-  /** `PENDING_FUNDS → REJECTED` (saldo insuficiente / débito recusado). */
   reject(reason: string, now: Date): Result<void, BetNotPendingError> {
     if (this._status !== BetStatus.PENDING_FUNDS) {
       return Result.fail(new BetNotPendingError());
@@ -206,10 +194,9 @@ export class Bet extends AggregateRoot<string> {
   }
 
   /**
-   * `CONFIRMED → CASHED_OUT`. Saca no `multiplierX100` (autoridade do servidor — vem do
-   * estado confiável do `Round`, nunca do payload do cliente — Garantia 2). Valida:
-   * estado `CONFIRMED` (guarda anti dupla-liquidação), multiplicador inteiro ≥ 1.00x e
-   * ≤ crash point. Payout = `floor(amount × mult / 100)` (a favor da casa, via `Money`).
+   * `CONFIRMED → CASHED_OUT`. O `multiplierX100` é autoridade do servidor (vem do `Round`,
+   * nunca do payload). Valida estado `CONFIRMED` (anti dupla-liquidação), multiplicador
+   * inteiro ≥ 1.00x e ≤ crash point. Payout = `floor(amount × mult / 100)`.
    */
   cashout(
     multiplierX100: number,
@@ -243,7 +230,6 @@ export class Bet extends AggregateRoot<string> {
     return Result.ok(undefined);
   }
 
-  /** `CONFIRMED → LOST` (rodada crashou sem cashout; dinheiro já debitado). */
   markLost(now: Date): Result<void, BetNotConfirmedError> {
     if (this._status !== BetStatus.CONFIRMED) {
       return Result.fail(new BetNotConfirmedError());
@@ -256,10 +242,9 @@ export class Bet extends AggregateRoot<string> {
   }
 
   /**
-   * `PENDING_FUNDS → REFUNDED` — compensação de late-debit: o débito confirmou **depois**
-   * de a rodada já ter terminado (a aposta nunca participou), então o valor é restituído
-   * (a aplicação emite o crédito de refund). Só sai de `PENDING_FUNDS` (se já está
-   * `CONFIRMED`/`REJECTED`/terminal, não é caso de refund) → reusa `BetNotPendingError`.
+   * `PENDING_FUNDS → REFUNDED` — compensação de late-debit: o débito confirmou depois de a
+   * rodada terminar (a aposta nunca participou), então o valor é restituído. Só sai de
+   * `PENDING_FUNDS`.
    */
   refund(now: Date): Result<void, BetNotPendingError> {
     if (this._status !== BetStatus.PENDING_FUNDS) {
@@ -272,10 +257,6 @@ export class Bet extends AggregateRoot<string> {
     return Result.ok(undefined);
   }
 
-  /**
-   * Reconstrói o agregado a partir do estado persistido (hidratação pelo repositório,
-   * Etapa 4). Não emite eventos.
-   */
   static reconstitute(state: BetState): Bet {
     return new Bet(state);
   }

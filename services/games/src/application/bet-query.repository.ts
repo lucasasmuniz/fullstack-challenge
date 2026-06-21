@@ -2,7 +2,7 @@ import type { BetStatus } from "../domain";
 
 /**
  * Projeção de leitura de uma aposta para `GET /bets/me` (não hidrata o agregado `Bet`).
- * Lado de **query** do CQRS — separado do `BetRepository` (escrita/agregado), ADR 0012.
+ * Lado de **query** do CQRS — separado do `BetRepository` (escrita/agregado).
  */
 export interface BetView {
   readonly id: string;

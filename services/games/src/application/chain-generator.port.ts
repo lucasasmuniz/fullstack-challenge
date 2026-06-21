@@ -11,7 +11,7 @@ export interface GeneratedChain {
 }
 
 /**
- * Port da geração da cadeia (CPU-bound). O adapter roda em worker thread (B1) para não
+ * Port da geração da cadeia (CPU-bound). O adapter roda em worker thread para não
  * travar o event loop. A aplicação depende só desta interface.
  */
 export interface ChainGenerator {

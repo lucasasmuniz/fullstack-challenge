@@ -1,11 +1,7 @@
 import { createParamDecorator, type ExecutionContext } from "@nestjs/common";
 import type { AuthenticatedUser } from "./authenticated-user";
 
-/**
- * Injeta o {@link AuthenticatedUser} populado pelo {@link JwksGuard}.
- * Só use em rotas protegidas (sem `@Public`); fora delas `req.user` é undefined
- * e o decorator lança — sinal de erro de programação, não de runtime do cliente.
- */
+/** Injeta o `AuthenticatedUser` populado pelo guard. Lança se usado fora de rota protegida. */
 export const CurrentUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): AuthenticatedUser => {
     const request = ctx

@@ -1,6 +1,6 @@
 /**
  * Política do provably fair — **injetada** (config), nunca hardcoded no cálculo.
- * Os valores reais vêm de env na Etapa 4; aqui há um default canônico para testes
+ * Os valores reais vêm de env; aqui há um default canônico para testes
  * e documentação. Mantém o domínio configurável e os testes determinísticos.
  */
 export interface ProvablyFairPolicy {
@@ -21,7 +21,7 @@ export interface ProvablyFairPolicy {
 }
 
 /**
- * Default canônico (≈1% de house edge, teto de 10.000,00x). A Etapa 4 sobrescreve
+ * Default canônico (≈1% de house edge, teto de 10.000,00x). sobrescreve
  * via env (`PROVABLY_FAIR_*`). Exposto para testes e para o endpoint de verificação.
  */
 export const DEFAULT_PROVABLY_FAIR_POLICY: ProvablyFairPolicy = {

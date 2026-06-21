@@ -10,13 +10,9 @@ import { InsufficientFundsError, InvalidAmountError } from "./wallet-errors";
 import type { WalletReason } from "./wallet-reason";
 
 /**
- * Wallet — agregado **event-sourced**. O estado (saldo/version) é derivado dos
- * eventos do ledger; nenhuma mutação acontece sem um evento correspondente. A
- * invariante central é **saldo nunca negativo** (garantida aqui no domínio e,
- * em defesa em profundidade, por `CHECK` no banco).
- *
- * Identidade do agregado: `walletId` (uuid). A identidade de negócio é o
- * `playerId` (= `sub` do JWT), com 1 carteira por jogador.
+ * Agregado event-sourced: o estado (saldo/version) é derivado dos eventos do ledger; nenhuma
+ * mutação ocorre sem um evento. Invariante central: saldo nunca negativo (no domínio + `CHECK` no
+ * banco). Identidade técnica `walletId`; identidade de negócio `playerId` (1 carteira por jogador).
  */
 export class Wallet extends AggregateRoot<string> {
   private _playerId: string;
@@ -24,8 +20,6 @@ export class Wallet extends AggregateRoot<string> {
   private _balance: Money = Money.zero();
   private _version = 0;
 
-  // Construtor privado recebe a identidade (sem `!`): toda construção passa por
-  // `create`/`rebuild`, que sempre têm `playerId`/`currency` (params ou 1º evento).
   private constructor(id: string, playerId: string, currency: string) {
     super(id);
     this._playerId = playerId;
@@ -45,7 +39,6 @@ export class Wallet extends AggregateRoot<string> {
     return this._version;
   }
 
-  /** Cria uma carteira nova (saldo zero), emitindo `WalletCreated` (version 1). */
   static create(props: {
     walletId: string;
     playerId: string;
@@ -58,11 +51,6 @@ export class Wallet extends AggregateRoot<string> {
     return Result.ok(wallet);
   }
 
-  /**
-   * Reconstrói o agregado a partir do stream de eventos (fold) — sem novos eventos.
-   * Valida a **continuidade das versões** (1, 2, 3, …): gap, duplicata ou reordenação
-   * fazem falhar fechado, em vez de produzir um saldo silenciosamente errado.
-   */
   static rebuild(events: readonly WalletDomainEvent[]): Wallet {
     const first = events[0];
     if (!(first instanceof WalletCreated)) {
@@ -125,11 +113,9 @@ export class Wallet extends AggregateRoot<string> {
     return Result.ok(undefined);
   }
 
-  /** Aplica o efeito do evento no estado (usado tanto no fold quanto nas mutações). */
   private apply(event: WalletDomainEvent): void {
     switch (event.eventName) {
       case "WalletCreated":
-        // Identidade (playerId/currency) já vem do construtor; aqui só o saldo inicial.
         this._balance = Money.zero();
         break;
       case "FundsCredited":
@@ -144,7 +130,6 @@ export class Wallet extends AggregateRoot<string> {
     this._version = event.version;
   }
 
-  /** Aplica e registra o evento como novo (a ser persistido pelo repositório). */
   private applyAndRecord(event: WalletDomainEvent): void {
     this.apply(event);
     this.addEvent(event);

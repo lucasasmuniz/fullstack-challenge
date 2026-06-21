@@ -2,7 +2,7 @@ import { Money } from "@crash-game/money";
 
 /**
  * Limites da aposta — **injetados** (config), não hardcoded no agregado. Valores reais
- * via env na Etapa 4; o default reflete o README (mín. `1,00`, máx. `1.000,00`). Mantém
+ * via env; o default reflete o README (mín. `1,00`, máx. `1.000,00`). Mantém
  * o domínio configurável e os testes determinísticos (forçar cenários de borda).
  */
 export interface BetLimits {

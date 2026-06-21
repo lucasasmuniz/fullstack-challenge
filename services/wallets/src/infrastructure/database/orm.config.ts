@@ -22,8 +22,6 @@ export function createOrmConfig(databaseUrl: string): Options {
   return baseMikroOrmConfig({
     clientUrl: databaseUrl,
     entities: [WalletEntity, WalletEventEntity, OutboxEntity, InboxEntity],
-    // No MikroORM v6 a extensão Migrator não é auto-registrada só por estar
-    // instalada — precisa entrar em `extensions` para o `orm.migrator` existir.
     extensions: [Migrator],
     migrations: {
       disableForeignKeys: false,

@@ -2,8 +2,8 @@ import { Entity } from "./entity";
 import type { DomainEvent } from "./domain-event";
 
 /**
- * AggregateRoot — raiz de consistência. Acumula domain events que são drenados
- * (`pullEvents`) após persistir, para então publicar (projeções, WebSocket, outbox).
+ * Raiz de consistência. Acumula domain events drenados (`pullEvents`) após persistir, para então
+ * publicar (projeções, WebSocket, outbox).
  */
 export abstract class AggregateRoot<TId> extends Entity<TId> {
   private _events: DomainEvent[] = [];
@@ -12,7 +12,6 @@ export abstract class AggregateRoot<TId> extends Entity<TId> {
     this._events.push(event);
   }
 
-  /** Retorna e limpa os eventos acumulados. */
   pullEvents(): DomainEvent[] {
     const events = this._events;
     this._events = [];

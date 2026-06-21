@@ -8,7 +8,7 @@ import {
 } from "@mikro-orm/core";
 
 /**
- * `bet` — estado persistido da aposta (agregado separado do `round`, ADR 0012; referencia
+ * `bet` — estado persistido da aposta (agregado separado do `round`; referencia
  * a rodada só por `round_id`). `version` dá concorrência otimista (anti dupla-liquidação,
  * 2ª linha). `UNIQUE(round_id, player_id)` impõe no banco a invariante cross-aggregate
  * "1 aposta/jogador/rodada". Dinheiro em `bigint` (centavos), sem float. `!` é idiomático
@@ -28,7 +28,6 @@ export class BetEntity {
   @Property({ type: "uuid" })
   playerId!: string;
 
-  /** Username do jogador (do JWT no place) — para a lista de apostas em tempo real (Etapa 6). */
   @Property({ type: "string" })
   username!: string;
 

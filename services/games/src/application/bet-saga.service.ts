@@ -44,7 +44,7 @@ export class BetSagaService {
 
   /**
    * Emite `bet:updated` (sala pública) **só** quando a transição foi de fato aplicada
-   * (`applied`) — pós-commit (Risco 5). `no_op`/`duplicate`/`not_found` não emitem. Casado por
+   * (`applied`) — pós-commit. `no_op`/`duplicate`/`not_found` não emitem. Casado por
    * `betId` no cliente (que já tem o `username` do `bet:placed`).
    */
   private emitBetUpdated(
@@ -66,11 +66,6 @@ export class BetSagaService {
   ): Promise<void> {
     const { betId, roundId } = msg.payload;
 
-    // Decide confirm vs refund pelo estado da rodada (late-debit → rodada terminal → refund).
-    // O `roundId` vem na mensagem (eco do comando), então lemos só o `Round` — sem reler a
-    // aposta (ela é recarregada dentro do `applyFromMessage`). Janela de corrida (rodada
-    // transiciona entre a leitura e a aplicação) é sub-ms; no late-debit real (backlog SQS) a
-    // rodada está firmemente terminal.
     const round = await this.rounds.findById(roundId);
     const terminal =
       round !== null &&
@@ -123,8 +118,6 @@ export class BetSagaService {
   }
 
   onFundsCredited(msg: IntegrationMessage<"FundsCredited">): Promise<void> {
-    // A aposta já está terminal (CASHED_OUT/REFUNDED) — o crédito é a confirmação da Wallet.
-    // Nada a transicionar; ack idempotente.
     this.logger.log(
       `FundsCredited confirmado (bet ${msg.payload.betId}, reason=${msg.payload.reason}).`,
     );

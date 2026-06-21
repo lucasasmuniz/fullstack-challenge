@@ -1,7 +1,7 @@
 import { Migration } from "@mikro-orm/migrations";
 
 /**
- * Seed do usuário de teste financiado (R12). O `player_id` é o **mesmo UUID** fixado
+ * Seed do usuário de teste financiado. O `player_id` é o **mesmo UUID** fixado
  * no `player` em `docker/keycloak/realm-export.json` (sub determinístico) — assim a
  * carteira semeada bate com o `sub` do JWT. Modelado como eventos do ledger
  * (`WalletCreated` v1 + `FundsCredited` reason=initial v2) + projeção de saldo.

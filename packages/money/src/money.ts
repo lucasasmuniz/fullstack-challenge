@@ -1,11 +1,8 @@
 /**
- * Money — valor monetário em **centavos inteiros** (`bigint`), sem ponto flutuante
- * (ADR 0005). Imutável e não-negativo: um `Money` nunca representa dívida. Operações
- * que poderiam ficar negativas (`subtract`) lançam — o chamador deve checar antes
- * com `isGreaterThanOrEqual` (a regra de negócio "saldo insuficiente" vive no
- * agregado, que retorna `Result.fail`, não aqui).
- *
- * Sem `currency`: a moeda é responsabilidade do contexto (a Wallet a guarda).
+ * Valor monetário em centavos inteiros (`bigint`), imutável e não-negativo — sem ponto
+ * flutuante. `subtract` lança se ficar negativo; o chamador checa antes com
+ * `isGreaterThanOrEqual` (a regra "saldo insuficiente" vive no agregado). Sem moeda: o
+ * contexto a guarda.
  */
 export class Money {
   private constructor(private readonly cents: bigint) {}
@@ -36,10 +33,9 @@ export class Money {
   }
 
   /**
-   * Aplica um multiplicador inteiro ×100 (ex.: `247` = `2.47x`) e arredonda para
-   * baixo (`floor`) — **a favor da casa** (ADR 0005). Toda a aritmética é em `bigint`
-   * (divisão inteira já trunca para baixo em valores não-negativos), sem float. É a
-   * fonte única do cálculo de payout do cashout: `payout = floor(cents · mult / 100)`.
+   * Aplica um multiplicador inteiro ×100 (`247` = `2.47x`) com `floor` a favor da casa.
+   * Aritmética em `bigint` (divisão inteira trunca), sem float. Fonte única do payout do
+   * cashout: `payout = floor(cents · mult / 100)`.
    */
   multipliedBy(multiplierX100: bigint | number): Money {
     const mult =

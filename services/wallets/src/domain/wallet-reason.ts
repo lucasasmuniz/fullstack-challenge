@@ -1,7 +1,7 @@
 /**
- * Motivo de um movimento no ledger. A Etapa 2 usa `deposit`/`withdrawal`/`initial`
+ * Motivo de um movimento no ledger. usa `deposit`/`withdrawal`/`initial`
  * (REST intra-contexto + seed); `bet`/`cashout`/`refund` existem no tipo para a saga
- * cross-service da Etapa 5 (consumidos via SQS).
+ * cross-service (consumidos via SQS).
  */
 export const WALLET_REASONS = [
   "deposit",

@@ -9,7 +9,7 @@ import { toBetStatus } from "./mikro-orm-bet.repository";
 
 /**
  * Adapter de leitura das apostas (lado de query do CQRS) — projeta `BetEntity` em `BetView`
- * sem hidratar o agregado. Separado do `MikroOrmBetRepository` (escrita/saga), ADR 0012.
+ * sem hidratar o agregado. Separado do `MikroOrmBetRepository` (escrita/saga).
  */
 @Injectable()
 export class MikroOrmBetQueryRepository implements BetQueryRepository {

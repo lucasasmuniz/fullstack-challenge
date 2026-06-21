@@ -11,7 +11,7 @@ import {
 const BUFFER_KEY = "seed:buffer";
 
 /**
- * Buffer hot (Valkey) de seeds — **otimização**, não fonte da verdade (ADR 0013). Provê um
+ * Buffer hot (Valkey) de seeds — **otimização**, não fonte da verdade. Provê um
  * **candidato** (read-ahead) para a abertura da rodada; o consumo autoritativo e atômico
  * (cursor + insert) acontece no {@link RoundOpener}, que valida o candidato contra o cursor.
  * Em cache miss / Valkey fora / candidato stale, o opener cai para o consumo cold.
@@ -41,7 +41,6 @@ export class SeedBuffer {
         return;
       }
       const active = await this.repo.findActiveChain();
-      // Só dá pra formar candidato com publicSeed resolvido.
       if (!active || active.publicSeed === null) {
         return;
       }
@@ -62,8 +61,6 @@ export class SeedBuffer {
       );
       await this.valkey.rpush(BUFFER_KEY, payload);
     } catch (err) {
-      // Read-ahead é best-effort: falha de Valkey/DB aqui só significa que o opener vai
-      // consumir via cold storage. Não propaga (não derruba o loop).
       this.logger.warn(
         `Falha ao reabastecer o buffer (seguindo via cold storage): ${asMessage(err)}`,
       );
