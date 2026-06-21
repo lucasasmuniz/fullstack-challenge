@@ -16,6 +16,10 @@ export function setupSwagger(app: INestApplication): void {
         "(`/wallets/socket.io/`, conexão autenticada).",
     )
     .setVersion("1.0")
+    // Servers: o "Try it out" usa a base URL escolhida + o path interno. Via Kong o prefixo é
+    // `/wallets` (strip_path) — sem declará-lo, o UI chamaria `:8000/me` (sem rota).
+    .addServer("http://localhost:8000/wallets", "Via Kong (gateway — acesso oficial)")
+    .addServer("http://localhost:4002", "Direto na porta do serviço (debug)")
     .addBearerAuth(
       { type: "http", scheme: "bearer", bearerFormat: "JWT" },
       "bearer",

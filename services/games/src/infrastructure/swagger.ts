@@ -17,6 +17,10 @@ export function setupSwagger(app: INestApplication): void {
         "vão por WebSocket (`/games/socket.io/`).",
     )
     .setVersion("1.0")
+    // Servers: o "Try it out" usa a base URL escolhida + o path interno da operação. Via Kong o
+    // prefixo é `/games` (strip_path) — sem declará-lo, o UI chamaria `:8000/health` (sem rota).
+    .addServer("http://localhost:8000/games", "Via Kong (gateway — acesso oficial)")
+    .addServer("http://localhost:4001", "Direto na porta do serviço (debug)")
     .addBearerAuth(
       { type: "http", scheme: "bearer", bearerFormat: "JWT" },
       "bearer",
