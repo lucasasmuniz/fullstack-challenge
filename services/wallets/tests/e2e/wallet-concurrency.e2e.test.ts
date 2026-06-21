@@ -9,6 +9,7 @@ import { MikroOrmWalletRepository } from "../../src/infrastructure/persistence/m
 import { DepositHandler } from "../../src/application/deposit.handler";
 import { WithdrawHandler } from "../../src/application/withdraw.handler";
 import { WalletMovementService } from "../../src/application/wallet-movement.service";
+import { FakeRealtimePublisher } from "../support/fake-realtime";
 import { Wallet } from "../../src/domain";
 
 /**
@@ -39,7 +40,7 @@ beforeAll(async () => {
   orm = await MikroORM.init(createOrmConfig(DB_URL));
   await orm.migrator.up(); // garante o schema (idempotente)
   repo = new MikroOrmWalletRepository(orm.em);
-  const movements = new WalletMovementService(repo);
+  const movements = new WalletMovementService(repo, new FakeRealtimePublisher());
   deposit = new DepositHandler(movements);
   withdraw = new WithdrawHandler(movements);
 });

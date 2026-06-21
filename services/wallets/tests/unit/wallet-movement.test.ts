@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { UniqueConstraintViolationException } from "@mikro-orm/core";
 import { Money } from "@crash-game/money";
 import { WalletMovementService } from "../../src/application/wallet-movement.service";
+import { FakeRealtimePublisher } from "../support/fake-realtime";
 import { DepositHandler } from "../../src/application/deposit.handler";
 import { WithdrawHandler } from "../../src/application/withdraw.handler";
 import type { WalletRepository } from "../../src/application/wallet.repository";
@@ -139,7 +140,7 @@ class FakeWalletRepository implements WalletRepository {
 
 function setup() {
   const repo = new FakeWalletRepository();
-  const movements = new WalletMovementService(repo);
+  const movements = new WalletMovementService(repo, new FakeRealtimePublisher());
   return {
     repo,
     deposit: new DepositHandler(movements),

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Money } from "@crash-game/money";
 import type { IntegrationMessage } from "@crash-game/contracts";
 import { WalletSagaService } from "../../src/application/wallet-saga.service";
+import { FakeRealtimePublisher } from "../support/fake-realtime";
 import type {
   InboxRef,
   OutboxMessage,
@@ -140,7 +141,7 @@ describe("WalletSagaService.onDebitFunds", () => {
   it("debita e emite FundsDebited quando há saldo", async () => {
     const repo = new FakeWalletRepository();
     repo.seed(PLAYER, 10_000n);
-    const saga = new WalletSagaService(repo);
+    const saga = new WalletSagaService(repo, new FakeRealtimePublisher());
 
     await saga.onDebitFunds(debitMsg(randomUUID(), PLAYER, 2_500));
 
@@ -152,7 +153,7 @@ describe("WalletSagaService.onDebitFunds", () => {
   it("rejeita (FundsDebitRejected) e mantém o saldo quando falta saldo", async () => {
     const repo = new FakeWalletRepository();
     repo.seed(PLAYER, 1_000n);
-    const saga = new WalletSagaService(repo);
+    const saga = new WalletSagaService(repo, new FakeRealtimePublisher());
 
     await saga.onDebitFunds(debitMsg(randomUUID(), PLAYER, 5_000));
 
@@ -164,7 +165,7 @@ describe("WalletSagaService.onDebitFunds", () => {
   it("é idempotente: a mesma mensagem reentregue não debita nem emite de novo", async () => {
     const repo = new FakeWalletRepository();
     repo.seed(PLAYER, 10_000n);
-    const saga = new WalletSagaService(repo);
+    const saga = new WalletSagaService(repo, new FakeRealtimePublisher());
     const msg = debitMsg(randomUUID(), PLAYER, 2_500);
 
     await saga.onDebitFunds(msg);
@@ -176,7 +177,7 @@ describe("WalletSagaService.onDebitFunds", () => {
 
   it("rejeita débito de carteira inexistente (mantém a saga viva)", async () => {
     const repo = new FakeWalletRepository();
-    const saga = new WalletSagaService(repo);
+    const saga = new WalletSagaService(repo, new FakeRealtimePublisher());
 
     await saga.onDebitFunds(debitMsg(randomUUID(), PLAYER, 2_500));
 

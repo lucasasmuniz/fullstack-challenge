@@ -16,6 +16,31 @@ import { BetStatus } from "../../src/domain/bet-status";
 import { DEFAULT_BET_LIMITS } from "../../src/domain/bet-limits";
 import { Round } from "../../src/domain/round";
 import { RoundStatus } from "../../src/domain/round-status";
+import type { RealtimePublisher } from "../../src/application/realtime.port";
+import type {
+  RealtimeEvent,
+  RealtimeEventPayloads,
+} from "@crash-game/realtime-contracts";
+
+/** Fake do publisher WS: captura os eventos emitidos para a sala pública. */
+class FakeRealtimePublisher implements RealtimePublisher {
+  readonly emitted: { event: RealtimeEvent; payload: unknown }[] = [];
+  emitToPublic<E extends RealtimeEvent>(
+    event: E,
+    payload: RealtimeEventPayloads[E],
+  ): void {
+    this.emitted.push({ event, payload });
+  }
+}
+
+/** Monta a saga com fakes (realtime opcional para asserções de WS). */
+function makeSaga(
+  bets: FakeBetRepository,
+  round: Round | null,
+  realtime: RealtimePublisher = new FakeRealtimePublisher(),
+): BetSagaService {
+  return new BetSagaService(bets, new FakeRoundRepository(round), realtime);
+}
 
 const NOW = new Date("2026-06-20T12:00:00.000Z");
 const PLAYER = "player-1";
@@ -23,7 +48,13 @@ const ROUND_ID = "round-1";
 
 function pendingBet(betId = "bet-1"): Bet {
   const bet = Bet.place(
-    { betId, roundId: ROUND_ID, playerId: PLAYER, amount: Money.fromCents(2000) },
+    {
+      betId,
+      roundId: ROUND_ID,
+      playerId: PLAYER,
+      username: "player",
+      amount: Money.fromCents(2000),
+    },
     DEFAULT_BET_LIMITS,
     NOW,
   ).unwrap();
@@ -149,7 +180,7 @@ describe("BetSagaService.onFundsDebited (confirm vs refund)", () => {
     const bet = pendingBet();
     const bets = new FakeBetRepository();
     bets.seed(bet);
-    const saga = new BetSagaService(bets, new FakeRoundRepository(roundWith(RoundStatus.RUNNING)));
+    const saga = makeSaga(bets, roundWith(RoundStatus.RUNNING));
 
     await saga.onFundsDebited(debitedMsg(bet.id));
 
@@ -162,7 +193,7 @@ describe("BetSagaService.onFundsDebited (confirm vs refund)", () => {
     const bet = pendingBet();
     const bets = new FakeBetRepository();
     bets.seed(bet);
-    const saga = new BetSagaService(bets, new FakeRoundRepository(roundWith(RoundStatus.CRASHED)));
+    const saga = makeSaga(bets, roundWith(RoundStatus.CRASHED));
 
     await saga.onFundsDebited(debitedMsg(bet.id));
 
@@ -178,7 +209,7 @@ describe("BetSagaService.onFundsDebited (confirm vs refund)", () => {
     const bet = pendingBet();
     const bets = new FakeBetRepository();
     bets.seed(bet);
-    const saga = new BetSagaService(bets, new FakeRoundRepository(roundWith(RoundStatus.SETTLED)));
+    const saga = makeSaga(bets, roundWith(RoundStatus.SETTLED));
 
     await saga.onFundsDebited(debitedMsg(bet.id));
 
@@ -190,7 +221,7 @@ describe("BetSagaService.onFundsDebited (confirm vs refund)", () => {
     const bet = pendingBet();
     const bets = new FakeBetRepository();
     bets.seed(bet);
-    const saga = new BetSagaService(bets, new FakeRoundRepository(roundWith(RoundStatus.CRASHED)));
+    const saga = makeSaga(bets, roundWith(RoundStatus.CRASHED));
     const msg = debitedMsg(bet.id);
 
     await saga.onFundsDebited(msg);
@@ -207,7 +238,7 @@ describe("BetSagaService — rejeição e crédito", () => {
     const bet = pendingBet();
     const bets = new FakeBetRepository();
     bets.seed(bet);
-    const saga = new BetSagaService(bets, new FakeRoundRepository(null));
+    const saga = makeSaga(bets, null);
 
     await saga.onFundsDebitRejected({
       messageId: randomUUID(),
@@ -215,6 +246,7 @@ describe("BetSagaService — rejeição e crédito", () => {
       occurredAt: NOW.toISOString(),
       payload: {
         betId: bet.id,
+        roundId: ROUND_ID,
         playerId: PLAYER,
         amountCents: 2000,
         reason: "Saldo insuficiente",
@@ -226,7 +258,7 @@ describe("BetSagaService — rejeição e crédito", () => {
 
   it("onFundsCredited → ack idempotente (não lança, não toca repositório)", async () => {
     const bets = new FakeBetRepository();
-    const saga = new BetSagaService(bets, new FakeRoundRepository(null));
+    const saga = makeSaga(bets, null);
 
     await saga.onFundsCredited({
       messageId: randomUUID(),

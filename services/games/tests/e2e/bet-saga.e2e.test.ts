@@ -41,6 +41,7 @@ function newBet(roundId: string, playerId: string, cents = 500): Bet {
       betId: randomUUID(),
       roundId,
       playerId,
+      username: "player",
       amount: Money.fromCents(cents),
     },
     DEFAULT_BET_LIMITS,
