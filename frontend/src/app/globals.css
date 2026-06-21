@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — "Crash" (Jungle Gaming): dark sóbrio "fintech premium", verde neon só em
+ * acentos. Fonte da verdade: docs/frontend/design-prompt.md. Tema sempre escuro (app de cassino).
+ */
+@theme {
+  --color-base: #0a0b0a;
+  --color-surface: #121413;
+  --color-elevated: #171a18;
+  --color-line: #1e2421;
+
+  --color-primary: #7cfc4a;
+  --color-primary-glow: #95ff6b;
+  --color-primary-deep: #2b5e1e;
+
+  --color-fg: #f4f7f4;
+  --color-muted: #9aa39b;
+  --color-faint: #5e665f;
+
+  --color-danger: #ff4d4d;
+  --color-warning: #ffc24d;
+
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --shadow-glow: 0 0 20px -2px color-mix(in srgb, var(--color-primary) 55%, transparent);
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-display), system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-base);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+}
+
+/* Números tabulares (multiplicador, saldo): dígitos alinhados, cara técnica. */
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
