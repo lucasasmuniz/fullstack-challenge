@@ -37,6 +37,8 @@ import { SeedBuffer } from "./application/seed-buffer";
 import { LeaderLease } from "./application/leader-lease";
 import { RoundScheduler } from "./application/round-scheduler";
 import { RoundQueryService } from "./application/round-query.service";
+import { REALTIME_PUBLISHER } from "./application/realtime.port";
+import { GameGateway } from "./infrastructure/websocket/game.gateway";
 
 // Carregado no import do módulo => fail-fast no bootstrap se faltar/for inválida uma env.
 const env = loadGamesEnv();
@@ -81,6 +83,9 @@ const env = loadGamesEnv();
     MikroOrmOutboxStore,
     OutboxRelayService,
     GameInboxConsumer,
+    // WebSocket (Etapa 6): gateway implementa o RealtimePublisher (emissão pública).
+    GameGateway,
+    { provide: REALTIME_PUBLISHER, useExisting: GameGateway },
   ],
   exports: [ENV],
 })

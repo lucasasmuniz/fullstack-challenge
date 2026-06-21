@@ -18,6 +18,10 @@ export const gamesEnvSchema = z.object({
 
   VALKEY_URL: z.string().url(),
 
+  // Origem permitida no CORS do handshake WebSocket (Risco 4). Default '*' (dev); em prod, a
+  // URL do frontend. Lido também direto de process.env pelo decorator do gateway (estático).
+  WS_CORS_ORIGIN: z.string().min(1).default("*"),
+
   // --- Saga / mensageria (Etapa 5) ---
   // Liga/desliga os loops de SQS (relay + consumer) nesta instância (false em testes de auth/REST).
   MESSAGING_ENABLED: z
