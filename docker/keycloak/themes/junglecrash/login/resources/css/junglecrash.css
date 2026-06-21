@@ -2,9 +2,10 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap");
 
 :root {
+  /* Tudo preto: uma única cor de fundo em todas as superfícies (sem variação). */
   --jc-base: #0a0b0a;
-  --jc-surface: #121413;
-  --jc-elevated: #171a18;
+  --jc-surface: #0a0b0a;
+  --jc-elevated: #0a0b0a;
   --jc-line: #1e2421;
   --jc-primary: #7cfc4a;
   --jc-primary-glow: #95ff6b;
@@ -26,10 +27,10 @@ body,
 .card-pf,
 #kc-content,
 .login-pf-page .card-pf {
-  background: var(--jc-surface) !important;
+  background: var(--jc-base) !important;
   border: 1px solid var(--jc-line) !important;
   border-radius: 14px !important;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: none !important;
 }
 
 #kc-header,
@@ -143,6 +144,7 @@ a,
   background-color: transparent !important;
   color: var(--jc-muted) !important;
   border: none !important;
+  margin-top: 22px !important;
 }
 
 /* Header (nome do jogo) */
