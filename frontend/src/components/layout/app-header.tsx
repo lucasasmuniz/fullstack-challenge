@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useWallet } from "@/hooks/use-wallet";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAuthActions } from "@/hooks/use-auth-actions";
+import { useUiStore } from "@/stores/ui-store";
 import { formatBRL } from "@/lib/utils";
 
 const ICON_BTN =
@@ -21,6 +22,7 @@ export function AppHeader() {
   const { username, isAuthenticated } = useCurrentUser();
   const { login, register, logout } = useAuthActions();
   const { data: wallet } = useWallet(isAuthenticated);
+  const openModal = useUiStore((s) => s.open);
 
   return (
     <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between gap-3 border-b border-line bg-base/80 px-4 backdrop-blur-md md:px-6">
@@ -37,24 +39,44 @@ export function AppHeader() {
             </span>
           </div>
 
-          <Button size="sm" className="h-[38px]">
+          <Button size="sm" className="h-[38px]" onClick={() => openModal({ type: "deposit" })}>
             <Plus className="size-[15px]" strokeWidth={2.4} />
             <span className="hidden sm:block">Depositar</span>
           </Button>
-          <Button variant="secondary" size="sm" className="hidden h-[38px] sm:flex">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="hidden h-[38px] sm:flex"
+            onClick={() => openModal({ type: "withdraw" })}
+          >
             <ArrowUpRight className="size-[15px]" strokeWidth={2.2} />
             Sacar
           </Button>
 
           <div className="hidden h-[26px] w-px bg-line md:block" />
 
-          <button className={`hidden md:grid ${ICON_BTN}`} title="Histórico" aria-label="Histórico">
+          <button
+            onClick={() => openModal({ type: "history" })}
+            className={`hidden md:grid ${ICON_BTN}`}
+            title="Histórico"
+            aria-label="Histórico"
+          >
             <History className="size-4" />
           </button>
-          <button className={`hidden md:grid ${ICON_BTN}`} title="Leaderboard" aria-label="Leaderboard">
+          <button
+            onClick={() => openModal({ type: "leaderboard" })}
+            className={`hidden md:grid ${ICON_BTN}`}
+            title="Leaderboard"
+            aria-label="Leaderboard"
+          >
             <Trophy className="size-4" />
           </button>
-          <button className={`hidden md:grid ${ICON_BTN}`} title="Configurações" aria-label="Configurações">
+          <button
+            onClick={() => openModal({ type: "settings" })}
+            className={`hidden md:grid ${ICON_BTN}`}
+            title="Configurações"
+            aria-label="Configurações"
+          >
             <Settings className="size-4" />
           </button>
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { elapsedForMultiplier } from "@crash-game/curve";
 import { ShieldCheck, Copy } from "lucide-react";
 import { useGameStore } from "@/stores/game-store";
+import { useUiStore } from "@/stores/ui-store";
 import { ConnectionStatus } from "@/components/ui/connection-status";
 import { cn, formatMultiplier } from "@/lib/utils";
 
@@ -75,6 +76,7 @@ export function CrashChart() {
   const liveX100 = useGameStore((s) => s.liveMultiplierX100);
   const conn = useGameStore((s) => s.conn);
   const latencyMs = useGameStore((s) => s.latencyMs);
+  const openModal = useUiStore((s) => s.open);
   const { secs, progress } = useCountdown(
     phase === "BETTING" ? round?.bettingEndsAt : undefined,
   );
@@ -186,6 +188,14 @@ export function CrashChart() {
           >
             {crashed ? "Crashou" : "Subindo"}
           </span>
+          {crashed && round && (
+            <button
+              onClick={() => openModal({ type: "verify", roundId: round.id })}
+              className="pointer-events-auto mt-1 text-xs text-muted underline-offset-4 transition-colors hover:text-primary hover:underline"
+            >
+              Verificar →
+            </button>
+          )}
         </div>
       )}
 
