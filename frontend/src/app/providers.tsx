@@ -6,6 +6,7 @@ import { AuthProvider } from "react-oidc-context";
 import { Toaster } from "sonner";
 import { getUserManager, onSigninCallback } from "@/lib/auth";
 import { useIsClient } from "@/hooks/use-is-client";
+import { AuthSessionManager } from "@/components/auth/auth-session-manager";
 
 /**
  * Providers globais do client. O UserManager (OIDC) toca `window`/`localStorage`, então o
@@ -31,6 +32,7 @@ export function Providers({ children }: { children: ReactNode }) {
           userManager={getUserManager()}
           onSigninCallback={onSigninCallback}
         >
+          <AuthSessionManager />
           {children}
         </AuthProvider>
       ) : (

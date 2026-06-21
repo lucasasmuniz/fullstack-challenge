@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "react-oidc-context";
 import { Radio, ShieldCheck, Coins } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
+import { Button } from "@/components/ui/button";
+import { useAuthActions } from "@/hooks/use-auth-actions";
 
 const STATS = [
   { icon: Radio, title: "Tempo real", sub: "multiplayer · WebSocket" },
@@ -16,6 +19,8 @@ const STATS = [
 export default function LandingPage() {
   const auth = useAuth();
   const router = useRouter();
+  const { login, register } = useAuthActions();
+  const busy = auth.isLoading || auth.activeNavigator !== undefined;
 
   useEffect(() => {
     if (auth.isAuthenticated) router.replace("/lobby");
@@ -38,13 +43,20 @@ export default function LandingPage() {
             Aposte, veja o multiplicador subir em tempo real e saque antes do
             crash. Resultado pré-determinado e verificável.
           </p>
-          <button
-            onClick={() => void auth.signinRedirect()}
-            disabled={auth.isLoading || auth.activeNavigator !== undefined}
-            className="mt-2 flex h-12 items-center rounded-[10px] bg-primary px-8 font-display text-base font-semibold text-base transition-colors hover:bg-primary-glow hover:shadow-glow disabled:opacity-60"
+          <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
+            <Button size="lg" onClick={login} loading={busy}>
+              {busy ? "Entrando…" : "Entrar"}
+            </Button>
+            <Button variant="secondary" size="lg" onClick={register} disabled={busy}>
+              Criar conta
+            </Button>
+          </div>
+          <Link
+            href="/lobby"
+            className="text-sm text-muted underline-offset-4 transition-colors hover:text-fg hover:underline"
           >
-            {auth.isLoading || auth.activeNavigator ? "Entrando…" : "Entrar"}
-          </button>
+            Entrar como visitante →
+          </Link>
         </div>
 
         <div className="grid w-full max-w-2xl grid-cols-1 gap-4 sm:grid-cols-3">
