@@ -83,11 +83,15 @@ export function NumberInput({
             value={text}
             onFocus={() => (focused.current = true)}
             onChange={(e) => {
-              setText(e.target.value);
               const cents = parseReais(e.target.value);
-              if (!Number.isNaN(cents)) {
-                onChange(max != null ? Math.min(max, cents) : cents);
+              // Trava no máximo já na digitação (visual + valor), não só no blur.
+              if (!Number.isNaN(cents) && max != null && cents > max) {
+                onChange(max);
+                setText(formatReais(max));
+                return;
               }
+              setText(e.target.value);
+              if (!Number.isNaN(cents)) onChange(cents);
             }}
             onBlur={() => {
               focused.current = false;
